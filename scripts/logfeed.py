@@ -132,6 +132,18 @@ def _fresh(path, since):
         return None
 
 
+def _mt(path):
+    try:
+        return int(os.path.getmtime(path))
+    except OSError:
+        return None
+
+
+def _items(items):
+    """items: (name, ok, file) -> [{"n", "ok", "t"}]; t = UTC epoch the check's output was finished."""
+    return [{"n": n, "ok": ok, "t": _mt(f) if ok else None} for n, ok, f in items]
+
+
 def stage_info():
     """Progress of each verification stage, for the overall bar and the phase rows."""
     try:
@@ -146,18 +158,18 @@ def stage_info():
     a = ph.get("axioms", {})
     if a.get("state") == "running":
         since = a.get("start")
-        items = [("#print axioms (Audit.lean)", "AUDIT_EXIT" in (_fresh(f"{RES}/audit.log", since) or ""))]
-        items += [(f"axiom walk: {t}", "WALK_EXIT" in (_fresh(f"{ROUT}/walk_{t}.txt", since) or "")) for t in WALKS]
-        out["axioms"] = {"done": sum(ok for _, ok in items), "total": len(items), "unit": "checks",
-                         "items": [{"n": n, "ok": ok} for n, ok in items]}
+        items = [("#print axioms (Audit.lean)", "AUDIT_EXIT" in (_fresh(f"{RES}/audit.log", since) or ""), f"{RES}/audit.log")]
+        items += [(f"axiom walk: {t}", "WALK_EXIT" in (_fresh(f"{ROUT}/walk_{t}.txt", since) or ""), f"{ROUT}/walk_{t}.txt")
+                  for t in WALKS]
+        out["axioms"] = {"done": sum(ok for _, ok, _ in items), "total": len(items), "unit": "checks", "items": _items(items)}
     st = ph.get("statement", {})
     if st.get("state") == "running":
         since = st.get("start")
-        items = [("StatementAudit.lean", "STATEMENT_AUDIT_EXIT" in (_fresh(f"{RES}/statement_audit.txt", since) or "")),
-                 ("Main import closure", _fresh(f"{ROUT}/main_closure.rc", since) is not None),
-                 ("package revisions", _fresh(f"{RES}/package_revs.txt", since) is not None)]
-        out["statement"] = {"done": sum(ok for _, ok in items), "total": len(items), "unit": "checks",
-                            "items": [{"n": n, "ok": ok} for n, ok in items]}
+        items = [("StatementAudit.lean", "STATEMENT_AUDIT_EXIT" in (_fresh(f"{RES}/statement_audit.txt", since) or ""),
+                  f"{RES}/statement_audit.txt"),
+                 ("Main import closure", _fresh(f"{ROUT}/main_closure.rc", since) is not None, f"{ROUT}/main_closure.rc"),
+                 ("package revisions", _fresh(f"{RES}/package_revs.txt", since) is not None, f"{RES}/package_revs.txt")]
+        out["statement"] = {"done": sum(ok for _, ok, _ in items), "total": len(items), "unit": "checks", "items": _items(items)}
     r = ph.get("replay", {})
     if r.get("state") == "running":
         since = r.get("start")

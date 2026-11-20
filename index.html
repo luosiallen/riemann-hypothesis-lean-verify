@@ -80,6 +80,8 @@ ol li:last-child{border-bottom:1px solid var(--faint)}
 .s.failed{color:var(--bad)}
 .ph-note{display:block;font-size:12px;color:var(--muted);margin-top:2px;word-break:break-word}
 .ph-t{font-size:12px;color:var(--muted);white-space:nowrap}
+.ph-ts{display:block;font:11.5px var(--mono);color:var(--muted);margin-top:4px;letter-spacing:-.01em}
+.ph-items .at{font-family:var(--mono);font-size:11px;opacity:.8}
 .pending .ph-n{color:var(--muted)}
 .ph-p{display:flex;align-items:center;gap:10px;margin-top:8px;font:11.5px var(--mono);color:var(--muted)}
 .ph-p .track{flex:1;margin:0;height:2px;max-width:320px}
@@ -259,7 +261,16 @@ const fmt = n => n == null ? '—' : Number(n).toLocaleString('en-US');
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function dur(s){ if(s==null) return '—'; s=Math.max(0,Math.round(s)); const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);
   return d?`${d}d ${h}h`:h?`${h}h ${m}m`:`${m}m`; }
-const clock = t => new Date(t*1000).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+const clock = t => new Date(t*1000).toLocaleString('en-US',{timeZone:'UTC',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}) + ' UTC';
+const utcD = t => new Date(t*1000).toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric'});
+const utcT = t => new Date(t*1000).toLocaleTimeString('en-US',{timeZone:'UTC',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+// "Nov 20 · 19:14:52 → 21:16:01 UTC"; start == end means only a completion time was recorded.
+function stamp(x){
+  if (!x.start) return '';
+  if (x.end && x.end === x.start) return `done by ${utcD(x.end)} · ${utcT(x.end)} UTC`;
+  const e = x.end ? (utcD(x.end) !== utcD(x.start) ? utcD(x.end) + ' · ' : '') + utcT(x.end) + ' UTC' : x.state === 'running' ? 'now' : '…';
+  return `${utcD(x.start)} · ${utcT(x.start)} → ${e}`;
+}
 const hm = t => new Date(t*1000).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
 
 async function load(){
@@ -305,7 +316,7 @@ function phProg(id){
     if (g.done && g.total && g.done >= g.total) txt += ` · leanchecker cross-check ${g.crosscheck_done} / ${g.crosscheck_total}`;
     if (g.eta_seconds != null && g.done < g.total) txt += ` · ~${dur(g.eta_seconds)} left`;
   }
-  const items = g.items ? `<span class="ph-items">${g.items.map(i => `<span class="${i.ok ? 'ok' : ''}">${i.ok ? '✓' : '○'} ${esc(i.n)}</span>`).join('')}</span>` : '';
+  const items = g.items ? `<span class="ph-items">${g.items.map(i => `<span class="${i.ok ? 'ok' : ''}">${i.ok ? '✓' : '○'} ${esc(i.n)}${i.ok && i.t ? ` <span class="at">${utcT(i.t)}</span>` : ''}</span>`).join('')}</span>` : '';
   return `<span class="ph-p"><span class="track"><i style="width:${q}%"></i></span><span>${txt}</span></span>${items}`;
 }
 function hero(){
@@ -367,13 +378,14 @@ function render(d){
   }).join('');
   $('phases').innerHTML = phases.map(x => {
     const t = x.end ? dur(x.end - x.start) : x.start ? dur(d.updated - x.start) + '…' : '';
-    return `<li class="${x.state}"><span class="s ${x.state}">${x.state === 'done' ? '✓' : x.state === 'failed' ? '✕' : ''}</span><span><span class="ph-n">${esc(x.name)}</span>${x.note ? `<span class="ph-note">${esc(x.note)}</span>` : ''}${x.state === 'running' ? phProg(x.id) : ''}</span><span class="ph-t">${t}</span></li>`;
+    return `<li class="${x.state}"><span class="s ${x.state}">${x.state === 'done' ? '✓' : x.state === 'failed' ? '✕' : ''}</span><span><span class="ph-n">${esc(x.name)}</span>${x.start ? `<span class="ph-ts">${stamp(x)}</span>` : ''}${x.note ? `<span class="ph-note">${esc(x.note)}</span>` : ''}${x.state === 'running' ? phProg(x.id) : ''}</span><span class="ph-t">${t}</span></li>`;
   }).join('') + (() => {
     const st = allDone ? 'done' : failed ? 'failed' : 'pending';
     const ends = phases.map(p => p.end || 0), starts = phases.map(p => p.start).filter(Boolean);
     const t = allDone && starts.length ? dur(Math.max(...ends) - Math.min(...starts)) : '';
     const note = allDone ? 'All phases passed' : failed ? 'Stopped at: ' + failed.name : '';
-    return `<li class="${st} fin"><span class="s ${st}">${st === 'done' ? '✓' : st === 'failed' ? '✕' : ''}</span><span><span class="ph-n">Complete</span>${note ? `<span class="ph-note">${esc(note)}</span>` : ''}</span><span class="ph-t">${t}</span></li>`;
+    const fin = allDone ? `<span class="ph-ts">finished ${utcD(Math.max(...ends))} · ${utcT(Math.max(...ends))} UTC</span>` : '';
+    return `<li class="${st} fin"><span class="s ${st}">${st === 'done' ? '✓' : st === 'failed' ? '✕' : ''}</span><span><span class="ph-n">Complete</span>${fin}${note ? `<span class="ph-note">${esc(note)}</span>` : ''}</span><span class="ph-t">${t}</span></li>`;
   })();
   $('mach').textContent = `${d.cpu_percent}% CPU · ${d.lean_processes} lean processes · ${d.mem_used_gb} / ${d.mem_total_gb} GB`;
 
