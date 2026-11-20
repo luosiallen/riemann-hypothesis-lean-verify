@@ -68,12 +68,14 @@ ol{list-style:none;margin:0;padding:0}
 ol li{display:grid;grid-template-columns:14px 1fr auto;gap:14px;padding:12px 0;border-top:1px solid var(--faint);font-size:14px;align-items:baseline}
 ol li:last-child{border-bottom:1px solid var(--faint)}
 .s{width:7px;height:7px;border-radius:50%;border:1px solid var(--muted);display:inline-block;transform:translateY(-1px)}
-.s.done{background:var(--ok);border-color:var(--ok)}
+.s.done,.s.failed{width:auto;height:auto;border:0;border-radius:0;background:none;transform:none;font-size:14px;font-weight:600;line-height:1}
+.s.done{color:var(--ok)}
 .s.running{background:var(--ink);border-color:var(--ink);animation:b 1.6s ease-in-out infinite}
-.s.failed{background:var(--bad);border-color:var(--bad)}
+.s.failed{color:var(--bad)}
 .ph-note{display:block;font-size:12px;color:var(--muted);margin-top:2px;word-break:break-word}
 .ph-t{font-size:12px;color:var(--muted);white-space:nowrap}
 .pending .ph-n{color:var(--muted)}
+.fin .ph-n{font-weight:500}
 pre{font:12px/1.7 var(--mono);color:var(--muted);margin:0;white-space:pre;overflow-x:auto}
 pre.err{color:var(--bad);margin-top:16px}
 .lh{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
@@ -289,8 +291,14 @@ function render(d){
   }).join('');
   $('phases').innerHTML = phases.map(x => {
     const t = x.end ? dur(x.end - x.start) : x.start ? dur(d.updated - x.start) + '…' : '';
-    return `<li class="${x.state}"><span class="s ${x.state}"></span><span><span class="ph-n">${esc(x.name)}</span>${x.note ? `<span class="ph-note">${esc(x.note)}</span>` : ''}</span><span class="ph-t">${t}</span></li>`;
-  }).join('');
+    return `<li class="${x.state}"><span class="s ${x.state}">${x.state === 'done' ? '✓' : x.state === 'failed' ? '✕' : ''}</span><span><span class="ph-n">${esc(x.name)}</span>${x.note ? `<span class="ph-note">${esc(x.note)}</span>` : ''}</span><span class="ph-t">${t}</span></li>`;
+  }).join('') + (() => {
+    const st = allDone ? 'done' : failed ? 'failed' : 'pending';
+    const ends = phases.map(p => p.end || 0), starts = phases.map(p => p.start).filter(Boolean);
+    const t = allDone && starts.length ? dur(Math.max(...ends) - Math.min(...starts)) : '';
+    const note = allDone ? 'All phases passed' : failed ? 'Stopped at: ' + failed.name : '';
+    return `<li class="${st} fin"><span class="s ${st}">${st === 'done' ? '✓' : st === 'failed' ? '✕' : ''}</span><span><span class="ph-n">Complete</span>${note ? `<span class="ph-note">${esc(note)}</span>` : ''}</span><span class="ph-t">${t}</span></li>`;
+  })();
   $('mach').textContent = `${d.cpu_percent}% CPU · ${d.lean_processes} lean processes · ${d.mem_used_gb} / ${d.mem_total_gb} GB`;
 
 }
