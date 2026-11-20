@@ -89,6 +89,11 @@ def main():
         hs.append(hist[-1])
 
     errors, sorry_warn, last = parse_log()
+    # Lean 4.33 prints "declaration uses `sorry`" (backticks); sched.py keeps every warning in warnings.log.
+    wl = f"{ROOT}/logs/warnings.log"
+    if os.path.exists(wl):
+        r = subprocess.run(["grep", "-cE", "declaration uses .?sorry", wl], capture_output=True, text=True)
+        sorry_warn = max(sorry_warn, int((r.stdout or "0").strip() or 0))
     status = {
         "updated": int(now),
         "total_modules": TOTAL_MODULES,
