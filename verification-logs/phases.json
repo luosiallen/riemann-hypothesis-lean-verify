@@ -1,0 +1,61 @@
+{
+ "phases": [
+  {
+   "id": "download",
+   "name": "Download 14 archive parts (parallel)",
+   "state": "done",
+   "start": 1795196988,
+   "end": 1795196988,
+   "note": "14 parts, 239,275,554 B, sha256 9631b4f0…; matches parts.sha256"
+  },
+  {
+   "id": "static",
+   "name": "Static audit: sorry / axiom / native_decide / kernel bypass",
+   "state": "done",
+   "start": 1795196988,
+   "end": 1795196988,
+   "note": "0 sorry/admit, 0 axiom, 0 native_decide; BuildAid run_cmd only touches LibrarySuggestions"
+  },
+  {
+   "id": "toolchain",
+   "name": "Install Lean v4.33.1 + Mathlib prebuilt cache",
+   "state": "done",
+   "start": 1795196988,
+   "end": 1795196988,
+   "note": "Lean 4.33.1 (819816b2), Mathlib prebuilt cache (8,690 files)"
+  },
+  {
+   "id": "build",
+   "name": "Kernel-check all 175,187 modules (lake build, 288 cores)",
+   "state": "done",
+   "start": 1795202092,
+   "note": "175,187 / 175,187 modules compiled and kernel-checked, 0 failed, 0 blocked · wall 2:00:33 · sched.py, 288 parallel lean processes, -R srcDir",
+   "end": 1795209325
+  },
+  {
+   "id": "axioms",
+   "name": "#print axioms on the final theorems",
+   "state": "done",
+   "start": 1795211052,
+   "note": "All 5 theorems: only Classical.choice,Quot.sound,propext (#print axioms and independent body walk agree)",
+   "end": 1795211431
+  },
+  {
+   "id": "statement",
+   "name": "Confirm statements match Mathlib definitions",
+   "state": "done",
+   "start": 1795211052,
+   "note": "Mathlib RiemannHypothesis/riemannZeta/LFunction/IsPrimitive (Mathlib 0df444a, clean); RiemannZetaZerosOnLine = RiemannHypothesis by rfl; Statements imports only Mathlib; theorem types exact",
+   "end": 1795211431
+  },
+  {
+   "id": "replay",
+   "name": "Independent environment replay (lean4checker)",
+   "state": "done",
+   "note": "183877 modules of Main's import closure re-checked by the kernel (replayexact), 0 failures (59 min)",
+   "start": 1795211433,
+   "end": 1795214990
+  }
+ ],
+ "notes": []
+}

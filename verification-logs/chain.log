@@ -1,0 +1,24 @@
+2026-11-20T18:18:55Z chain start pid 371629 (REPLAY_P=256)
+2026-11-20T21:16:01Z event build done sched.py exit 0: built=175187/175187 failed=0 blocked=0 not_run=0; wall 2:00:33 from 2026-11-20T19:14:52Z (after 11 min of lake build from 17:49:55)
+2026-11-20T21:16:01Z event axioms running Audit.lean (#print axioms) + independent axiom walk
+2026-11-20T21:16:01Z event statement running StatementAudit.lean
+2026-11-20T21:44:11Z chain stopped by operator: axiomwalk replaced (env.header hoisted out of loop; v1 kept as axiomwalk.v1); restarting
+2026-11-20T21:44:11Z chain start pid 3618584 (REPLAY_P=256)
+2026-11-20T21:44:12Z event build done sched.py exit 0: built=175187/175187 failed=0 blocked=0 not_run=0; wall 2:00:33 from 2026-11-20T19:14:52Z (after 11 min of lake build from 17:49:55)
+2026-11-20T21:44:12Z event axioms running Audit.lean (#print axioms) + independent axiom walk
+2026-11-20T21:44:12Z event statement running StatementAudit.lean
+2026-11-20T21:50:31Z axiom verdict: OK axioms=Classical.choice,Quot.sound,propext
+2026-11-20T21:50:31Z event axioms done All 5 theorems: only Classical.choice,Quot.sound,propext (#print axioms and independent body walk agree)
+2026-11-20T21:50:31Z statement verdict: OK
+2026-11-20T21:50:31Z event statement done Mathlib RiemannHypothesis/riemannZeta/LFunction/IsPrimitive (Mathlib 0df444a, clean); RiemannZetaZerosOnLine = RiemannHypothesis by rfl; Statements imports only Mathlib; theorem types exact
+VERIFICATION_LOG.md sections 4-7 regenerated 21:50:31
+2026-11-20T21:50:33Z pushed: Run 2: build result, axiom audit and statement audit
+2026-11-20T21:50:33Z event replay running replaying every module in Main's import closure (parallel, 256 processes)
+2026-11-20T21:50:33Z replay start: 183877 modules (2323 core modules skipped), 1839 chunks
+2026-11-20T22:16:07Z chain_tail start pid 3638470: took over from chain.sh (operator decision: Phase 4 only, then leanchecker --fresh Main; 59-module cross-check and negative-control re-run dropped). Waiting for replay xargs pid 3620947
+2026-11-20T22:22:29Z chain_tail start pid 3645527: took over from chain.sh (operator decision: Phase 4 only; cross-check, negative-control re-run and leanchecker --fresh Main dropped). Waiting for replay xargs pid 3620947
+2026-11-20T22:49:50Z replay done in 3557 s: replayed_ok=183877 failed=0 not_ok=0 VERDICT OK 
+2026-11-20T22:49:50Z event replay done 183877 modules of Main's import closure re-checked by the kernel (replayexact), 0 failures (59 min) 1795214990
+VERIFICATION_LOG.md sections 4-7 regenerated 22:49:51
+2026-11-20T22:49:53Z pushed: Run 2: kernel replay of Main's import closure
+2026-11-20T22:49:53Z chain finished (Phase 4 only; leanchecker --fresh Main not run, operator decision 22:22 UTC)
