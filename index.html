@@ -60,6 +60,10 @@ figure{margin:72px 0 0}
 .fig .fig-cap{font:400 12.5px var(--sans);fill:var(--muted)}
 figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
 figcaption i{font-family:"Times New Roman",Times,serif;font-size:14px}
+.notice{margin:64px 0 0;padding:4px 0 4px 20px;border-left:2px solid #d4782a;font-size:13.5px;line-height:1.65;color:var(--muted);max-width:680px}
+.notice .nt{color:var(--ink);font-weight:500;font-size:13px;margin-bottom:6px}
+.notice p{margin:0 0 8px}.notice p:last-child{margin:0}
+.notice code{font:12px var(--mono);color:var(--ink)}
 ol{list-style:none;margin:0;padding:0}
 ol li{display:grid;grid-template-columns:14px 1fr auto;gap:14px;padding:12px 0;border-top:1px solid var(--faint);font-size:14px;align-items:baseline}
 ol li:last-child{border-bottom:1px solid var(--faint)}
@@ -166,6 +170,17 @@ a:hover{text-decoration-color:currentColor}
 </svg>
     <figcaption>Every nontrivial zero of ζ(<i>s</i>) lies on the critical line Re <i>s</i> = ½.</figcaption>
   </figure>
+
+  <aside class="notice" aria-label="Run restarted">
+    <div class="nt">Restarted from scratch · Nov 20, 19:14 UTC</div>
+    <p>Our first pass on this machine ran <code>lean</code> from a custom parallel scheduler without the <code>--root</code> flag that Lake passes.
+    Lean then named modules <code>src.Formalism.…</code> instead of <code>Formalism.…</code>, so automatically generated instance names got a <code>_src</code> suffix
+    where the sources expect, for example, <code>_formalism</code>. At about 100,000 modules this surfaced as one failure
+    (<code>OmPinsTr</code>: unknown identifier <code>…RatF_formalism</code>), with 425 dependent modules blocked.</p>
+    <p>A wrong name can only make compilation fail; it cannot make the kernel accept a false proof. But the compiled files no longer matched a
+    real Lake build, so we discarded all ~105,000 of them and restarted with <code>-R src</code>. Checked after the restart: 0 of the first
+    1,673 new files contain <code>_src</code> instance names. Progress below counts the new run only.</p>
+  </aside>
 
   <div class="hero">
     <div class="pct" id="pct">—</div>
