@@ -195,16 +195,6 @@ a:hover{text-decoration-color:currentColor}
     <figcaption>Every nontrivial zero of ζ(<i>s</i>) lies on the critical line Re <i>s</i> = ½.</figcaption>
   </figure>
 
-  <aside class="notice" aria-label="Run restarted">
-    <div class="nt">Restarted from scratch · Nov 20, 19:14 UTC</div>
-    <p>Our first pass on this machine ran <code>lean</code> from a custom parallel scheduler without the <code>--root</code> flag that Lake passes.
-    Lean then named modules <code>src.Formalism.…</code> instead of <code>Formalism.…</code>, so automatically generated instance names got a <code>_src</code> suffix
-    where the sources expect, for example, <code>_formalism</code>. At about 100,000 modules this surfaced as one failure
-    (<code>OmPinsTr</code>: unknown identifier <code>…RatF_formalism</code>), with 425 dependent modules blocked.</p>
-    <p>A wrong name can only make compilation fail; it cannot make the kernel accept a false proof. But the compiled files no longer matched a
-    real Lake build, so we discarded all ~105,000 of them and restarted with <code>-R src</code>. Checked after the restart: 0 of the first
-    1,673 new files contain <code>_src</code> instance names. Progress below counts the new run only.</p>
-  </aside>
 
   <div class="hero" id="hero"></div>
 
@@ -251,6 +241,17 @@ a:hover{text-decoration-color:currentColor}
     <br><br><a href="https://github.com/luosiallen/riemann-hypothesis-lean-verify">Repository</a> ·
     <a href="https://github.com/luosiallen/riemann-hypothesis-lean-verify/blob/main/VERIFICATION_LOG.md">Verification log</a>
   </section>
+
+  <aside class="notice" aria-label="Run restarted">
+    <div class="nt">Restarted from scratch · Nov 20, 19:14 UTC</div>
+    <p>Our first pass on this machine ran <code>lean</code> from a custom parallel scheduler without the <code>--root</code> flag that Lake passes.
+    Lean then named modules <code>src.Formalism.…</code> instead of <code>Formalism.…</code>, so automatically generated instance names got a <code>_src</code> suffix
+    where the sources expect, for example, <code>_formalism</code>. At about 100,000 modules this surfaced as one failure
+    (<code>OmPinsTr</code>: unknown identifier <code>…RatF_formalism</code>), with 425 dependent modules blocked.</p>
+    <p>A wrong name can only make compilation fail; it cannot make the kernel accept a false proof. But the compiled files no longer matched a
+    real Lake build, so we discarded all ~105,000 of them and restarted with <code>-R src</code>. Checked after the restart: 0 of the first
+    1,673 new files contain <code>_src</code> instance names. All progress shown above counts the new run only.</p>
+  </aside>
 </main>
 <script>
 const parts = location.pathname.split('/').filter(Boolean);
