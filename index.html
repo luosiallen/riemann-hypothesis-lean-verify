@@ -19,7 +19,7 @@
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.6 var(--sans);font-feature-settings:"tnum" 1,"cv11" 1;-webkit-font-smoothing:antialiased}
-main{max-width:760px;margin:0 auto;padding:72px 16px 96px}
+main{max-width:760px;margin:0 auto;padding:48px 16px 96px}
 header{display:flex;flex-direction:column;gap:14px}
 .title{font-size:clamp(26px,4.2vw,36px);font-weight:500;letter-spacing:-.025em;line-height:1.15}
 .live{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:8px}
@@ -27,21 +27,23 @@ header{display:flex;flex-direction:column;gap:14px}
 .dot.stale{background:var(--muted);animation:none}
 @keyframes b{50%{opacity:.25}}
 .sub{color:var(--muted);font-size:14px;margin:12px 0 0}
-.hero{margin:72px 0 0}
+.hero{margin:40px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:34px 44px}
+@media (max-width:640px){.hero{grid-template-columns:1fr;gap:28px}}
 .pct{font-size:clamp(64px,14vw,112px);font-weight:300;letter-spacing:-.045em;line-height:1}
 .pct small{font-size:.4em;letter-spacing:0;color:var(--muted);margin-left:4px}
 .track{height:2px;background:var(--faint);margin:36px 0 14px;position:relative;overflow:hidden}
 .track>i{position:absolute;inset:0 auto 0 0;background:var(--accent);width:0;transition:width 1s ease}
-.pb{margin-top:44px}.pb:first-child{margin-top:0}
+.pb{margin:0;min-width:0}
 .pb .lbl{font-size:13px;color:var(--muted);letter-spacing:.02em}
 .pb .lbl b{font-weight:500;color:var(--ink)}
-.pb .pv{font-size:clamp(44px,8vw,64px);font-weight:300;letter-spacing:-.04em;line-height:1;margin-top:10px}
+.pb .pv{font-size:clamp(34px,5.5vw,46px);font-weight:300;letter-spacing:-.04em;line-height:1;margin-top:8px}
 .pb .pv small{font-size:.4em;letter-spacing:0;color:var(--muted);margin-left:3px}
-.pb .track{margin:20px 0 12px}
+.pb .track{margin:14px 0 10px}
+.pb .line{flex-direction:column;gap:3px;font-size:12.5px}
 .pb.pending .pv{color:var(--muted)}
 .pb.done .track>i{background:var(--ok)}
 .stats-cap{margin:72px 0 -40px}
-.fin-line{margin-top:44px;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.fin-line{grid-column:1/-1;margin-top:4px;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 .fin-line .big{font-size:clamp(28px,5vw,40px);font-weight:400;letter-spacing:-.02em}
 .fin-line.ok .big{color:var(--ok)}.fin-line.bad .big{color:var(--bad)}
 .fin-line a{color:inherit}
@@ -60,7 +62,7 @@ header{display:flex;flex-direction:column;gap:14px}
 .hero2 .track{margin:16px 0 14px}
 .pct .tag{display:block;font-size:13px;font-weight:400;letter-spacing:.02em;color:var(--muted);margin-bottom:10px}
 .line{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin:72px 0 0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin:56px 0 0}
 @media (max-width:600px){.stats{grid-template-columns:repeat(2,1fr);gap:28px 24px}.hero{margin-top:56px}main{padding-top:40px}}
 .stat .l{font-size:12px;color:var(--muted)}
 .stat .v{font-size:22px;font-weight:400;letter-spacing:-.01em;margin-top:4px}
@@ -74,7 +76,8 @@ svg text{fill:var(--muted);font:11px var(--sans)}
 .lib .c{text-align:right;color:var(--muted);white-space:nowrap}
 .lib .track{margin:0;height:1px}
 @media (max-width:600px){.lib{grid-template-columns:1fr auto}.lib .track{grid-column:1/-1;order:3}}
-figure{margin:72px 0 0}
+figure{margin:28px 0 0}
+figure .fig{display:block;max-width:540px;margin:0 auto}
 @media (min-width:1000px){figure{margin-left:-110px;margin-right:-110px}}
 .fig{color:var(--ink)}
 .fig .strip{opacity:.75}
@@ -85,7 +88,7 @@ figure{margin:72px 0 0}
 .fig .fig-sub{font:400 16px "Times New Roman",Times,serif;fill:var(--muted)}
 .fig .fig-num{font:400 18px "Times New Roman",Times,serif;fill:var(--ink)}
 .fig .fig-cap{font:400 12.5px var(--sans);fill:var(--muted)}
-figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
+figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
 figcaption i{font-family:"Times New Roman",Times,serif;font-size:14px}
 .notice{margin:64px 0 0;padding:4px 0 4px 20px;border-left:2px solid #d4782a;font-size:13.5px;line-height:1.65;color:var(--muted);max-width:680px}
 .notice .nt{color:var(--ink);font-weight:500;font-size:13px;margin-bottom:6px}
@@ -354,7 +357,7 @@ function phProg(id){
 }
 const PH = [['build', 'Compile'], ['axioms', 'Axiom audit'], ['statement', 'Statement audit'], ['replay', 'Kernel replay']];
 const phNum = id => { const i = PH.findIndex(x => x[0] === id); return i < 0 ? null : i + 1; };
-const span = x => x.start ? `${utcDT(x.start)} → ${x.end ? utcDT(x.end) : 'now'} UTC` : '';
+const span = x => x.start ? `${utcDT(x.start)} → ${x.end ? (utcD(x.end) === utcD(x.start) ? utcT(x.end) : utcDT(x.end)) : 'now'} UTC` : '';
 function hero(){
   if (!S) return;
   const d = S, phases = d.phases || [];
