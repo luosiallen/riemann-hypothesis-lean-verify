@@ -1,0 +1,51 @@
+# riemann-hypothesis-lean-verify
+
+Independent re-verification of a claimed Lean 4 formalization of the **Riemann Hypothesis** (and the
+generalized statement for Dirichlet L-functions), distributed as `https://alpo.ge/lean.tar.gz.part01 … part14`.
+
+**Live dashboard:** see the GitHub Pages site of this repository (`index.html`). It shows modules checked,
+modules remaining, throughput and the estimated time to completion, refreshed every two minutes.
+
+This repository records *the verification process*, not the proof sources themselves (1.4 GB, 175,187 files).
+
+## What is being checked
+
+| Item | Value |
+|---|---|
+| Archive | 14 parts, 239,275,554 bytes, sha256 `9631b4f020199e580ba86178cb56c6e9b09f690c2369a80dc4334aa93f49c7fc` |
+| Lean sources | 175,187 `.lean` files, 1.4 GB |
+| Toolchain | `leanprover/lean4:v4.33.1` |
+| Mathlib | `0df444a360eaa60ab8c11dca51a86af692955474` |
+| Machine | 128 cores, 503 GB RAM |
+
+Top-level theorems (`src/Main.lean` in the archive):
+
+```lean
+theorem riemannHypothesis : RiemannHypothesis := rhOfAll
+theorem riemannZeta_eq_zero_re : RiemannZetaZerosOnLine := rhOfAll
+theorem LFunction_ne_zero_of_half_lt_re : DirichletLNonvanishingRightOfHalf := allChi
+theorem LFunction_eq_zero_re : DirichletLZerosOnLine := claimAll.2.1
+theorem LFunction_eq_zero_re_of_isPrimitive : PrimitiveDirichletLZerosOnLine := critAll
+```
+
+`RiemannHypothesis` is Mathlib's own definition; the other four statements are defined in the archive's
+`Statements.lean`, which imports only `Mathlib`.
+
+## Method
+
+1. **Download** all parts in parallel, record per-part and whole-archive SHA-256 (`parts.sha256`).
+2. **Static audit before running anything**: scan every source file for `sorry`, `axiom`, `native_decide`,
+   `implemented_by`, `extern`, `unsafe`, `debug.skipKernelTC`, environment manipulation and custom elaborators.
+3. **Kernel check**: `lake build` of every default target with the pinned toolchain and Mathlib's prebuilt cache.
+4. **Axiom audit**: `#print axioms` for each top-level theorem. Only `propext`, `Classical.choice`, `Quot.sound` are acceptable.
+5. **Statement audit**: confirm the constants in the statements (`RiemannHypothesis`, `riemannZeta`,
+   `DirichletCharacter.LFunction`) are the ones defined in Mathlib modules.
+6. **Independent replay** of the compiled environment with `lean4checker` (planned, depends on step 3).
+
+See [`VERIFICATION_LOG.md`](VERIFICATION_LOG.md) for the chronological record and results.
+
+## Reading the result
+
+A passing kernel check means the proof terms are accepted by Lean's kernel relative to the listed axioms.
+It is strong evidence, not a substitute for expert mathematical review of the statements and of the toolchain.
+Nothing here should be read as a claim of a proof until every step in the log is marked complete.
