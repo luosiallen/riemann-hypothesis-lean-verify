@@ -41,6 +41,18 @@ header{display:flex;flex-direction:column;gap:14px}
 .pb.pending .pv{color:var(--muted)}
 .pb.done .track>i{background:var(--ok)}
 .stats-cap{margin:72px 0 -40px}
+.fin-line{margin-top:44px;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.fin-line .big{font-size:clamp(28px,5vw,40px);font-weight:400;letter-spacing:-.02em}
+.fin-line.ok .big{color:var(--ok)}.fin-line.bad .big{color:var(--bad)}
+.fin-line a{color:inherit}
+#verify ul{list-style:none;margin:0;padding:0}
+#verify li{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:16px;padding:11px 0;border-top:1px solid var(--faint);font-size:13.5px}
+#verify li:last-child{border-bottom:1px solid var(--faint)}
+#pub-state{color:var(--ok)}
+#verify li a{font:12.5px var(--mono);color:var(--ink)}
+#verify li span{color:var(--muted)}
+#verify .vn{font-size:13px;color:var(--muted);margin:0 0 16px}
+@media (max-width:600px){#verify li{grid-template-columns:1fr;gap:4px}}
 .hero2{margin-top:44px}
 .h2h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .h2h .nm{font-size:13px;color:var(--muted);letter-spacing:.02em}
@@ -242,6 +254,19 @@ a:hover{text-decoration-color:currentColor}
 
   <section id="plogs"></section>
 
+  <section id="verify" class="plog">
+    <div class="lh"><h2>Verify it yourself</h2><span id="pub-state"></span></div>
+    <p class="vn" id="pub-note">Everything below is in the public repository. Full raw logs are uploaded automatically once Phase 4 finishes.</p>
+    <ul>
+      <li><a href="https://github.com/luosiallen/riemann-hypothesis-lean-verify/tree/main/verification-logs">verification-logs/</a><span>Raw server logs: every compiled module (build.log.gz), every warning (warnings.log.xz), every module re-checked by the kernel (replay_all.txt.gz), the pipeline log, phase timestamps, SHA-256 checksums, and the commands to check them.</span></li>
+      <li><a href="https://github.com/luosiallen/riemann-hypothesis-lean-verify/tree/main/results">results/</a><span>Audit outputs and verdicts: #print axioms, independent axiom walk, statement audit, package revisions, replay summary, leanchecker cross-check, negative control, and the checker sources.</span></li>
+      <li><a href="https://github.com/luosiallen/riemann-hypothesis-lean-verify/blob/main/VERIFICATION_LOG.md">VERIFICATION_LOG.md</a><span>Step-by-step record of the whole run, including the discarded first attempt.</span></li>
+      <li><a href="https://github.com/luosiallen/riemann-hypothesis-lean-verify/tree/main/scripts">scripts/</a><span>Scheduler, audit and dashboard scripts used on the server.</span></li>
+      <li><a href="https://github.com/luosiallen/riemann-hypothesis-lean-verify/blob/main/parts.sha256">parts.sha256</a><span>Checksums of the 14 downloaded archive parts, so you can confirm you are checking the same sources.</span></li>
+      <li><a href="https://github.com/luosiallen/riemann-hypothesis-lean-verify/tree/status">status branch</a><span>The live data behind this page (status.json, logs.json, build_tail.txt), refreshed every 2 minutes.</span></li>
+    </ul>
+  </section>
+
   <section class="foot">
     A passing build means Lean’s kernel accepted every proof term. The audit then prints the axioms each top-level theorem
     depends on — anything beyond <code>propext</code>, <code>Classical.choice</code>, <code>Quot.sound</code> fails the check —
@@ -374,7 +399,11 @@ function hero(){
       <div class="track"><i style="width:${Math.min(100, p)}%"></i></div>
       <div class="line"><span>${esc(c)}</span><span>${esc(e)}</span></div></div>`;
   });
-  $('hero').innerHTML = blocks.join('');
+  const all = phases.length && phases.every(p => p.state === 'done'), bad = phases.find(p => p.state === 'failed');
+  const fin = all ? Math.max(...phases.map(p => p.end || 0)) : null;
+  $('hero').innerHTML = blocks.join('') + (all
+    ? `<div class="fin-line ok"><span class="big">✓ Complete</span><span>All four phases passed · finished ${utcD(fin)} · ${utcT(fin)} UTC · <a href="#verify">logs &amp; how to verify</a></span></div>`
+    : bad ? `<div class="fin-line bad"><span class="big">✕ Stopped</span><span>${esc(bad.name)} · see the logs below</span></div>` : '');
   const b = ph('build'), bmin = b.start ? ((b.end || d.updated) - b.start) / 60 : null;
   $('k-built').textContent = fmt(d.built_modules);
   $('k-rem').textContent = fmt(d.remaining_modules);
@@ -430,6 +459,8 @@ function renderPhaseLogs(){
 }
 function renderLogs(l){
   L = l; hero(); if (S) render(S); renderPhaseLogs();
+  $('pub-state').textContent = L.logs_published ? '✓ raw logs published' : '';
+  if (L.logs_published) $('pub-note').textContent = 'Everything below is in the public repository, including the full raw logs with SHA-256 checksums.';
   $('lg-upd').textContent = 'Server log · ' + dur(Date.now()/1000 - L.updated) + ' ago';
   const s = L.scheduler, c = L.counts || {};
   $('sched').innerHTML = (s ? [['running',s.running],['ready',s.ready],['done',s.done],['failed',s.failed]] : [])

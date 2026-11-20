@@ -297,6 +297,7 @@ def main():
         "scheduler": sched_info(),
         "stages": stage_info(),
         "phase_logs": phase_logs(),
+        "logs_published": os.path.exists(f"{ROOT}/status/.logs_published"),
     }
     tmp = f"{OUT}/logs.json.tmp"
     json.dump(feed, open(tmp, "w"), ensure_ascii=False)
