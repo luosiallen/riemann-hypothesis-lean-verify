@@ -32,6 +32,12 @@ header{display:flex;flex-direction:column;gap:14px}
 .pct small{font-size:.4em;letter-spacing:0;color:var(--muted);margin-left:4px}
 .track{height:2px;background:var(--faint);margin:36px 0 14px;position:relative;overflow:hidden}
 .track>i{position:absolute;inset:0 auto 0 0;background:var(--accent);width:0;transition:width 1s ease}
+.hero2{margin-top:44px}
+.h2h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.h2h .nm{font-size:13px;color:var(--muted);letter-spacing:.02em}
+.h2h .p2{font-size:clamp(28px,5vw,36px);font-weight:300;letter-spacing:-.03em;line-height:1}
+.hero2 .track{margin:16px 0 14px}
+.pct .tag{display:block;font-size:13px;font-weight:400;letter-spacing:.02em;color:var(--muted);margin-bottom:10px}
 .line{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin:72px 0 0}
 @media (max-width:600px){.stats{grid-template-columns:repeat(2,1fr);gap:28px 24px}.hero{margin-top:56px}main{padding-top:40px}}
@@ -192,6 +198,11 @@ a:hover{text-decoration-color:currentColor}
     <div class="pct" id="pct">—</div>
     <div class="track"><i id="bar"></i></div>
     <div class="line"><span id="counts">—</span><span id="eta">—</span></div>
+    <div class="hero2">
+      <div class="h2h"><span class="nm">Kernel replay</span><span class="p2" id="pct2">—</span></div>
+      <div class="track"><i id="bar2"></i></div>
+      <div class="line"><span id="counts2">—</span><span id="eta2">—</span></div>
+    </div>
   </div>
 
   <div class="stats">
@@ -300,38 +311,45 @@ function phProg(id){
 function hero(){
   if (!S) return;
   const d = S, phases = d.phases || [];
-  const allDone = phases.length && phases.every(p => p.state === 'done');
-  const failed = phases.find(p => p.state === 'failed');
-  const p = allDone ? 100 : 100 * STAGES.reduce((a, [id, , w]) => a + w * frac(id), 0);
-  $('pct').innerHTML = (p >= 10 ? p.toFixed(1) : p.toFixed(2)) + '<small>%</small>';
-  $('bar').style.width = Math.min(100, p) + '%';
-  const st = (id) => (phases.find(x => x.id === id) || {}).state;
-  const cur = STAGES.map((x, i) => [...x, i + 1]).filter(([id]) => st(id) === 'running');
-  const g = id => L && L.stages && L.stages[id];
-  const bp = phases.find(x => x.id === 'build');
-  $('k-el').textContent = bp && bp.start ? dur((allDone ? Math.max(...phases.map(x => x.end || 0)) : d.updated) - bp.start) : '—';
-  let label, eta, k = [d.built_modules, d.remaining_modules, d.rate_per_min];
-  if (allDone) { label = 'All four stages passed'; eta = 'Complete'; }
-  else if (failed) { label = 'Stopped at: ' + failed.name; eta = 'See phases below'; }
-  else if (!cur.length) { label = 'Stage 1 of 4 · Compile'; eta = 'Starting…'; }
-  else if (cur[0][0] === 'build') {
-    label = `Stage 1 of 4 · Compile · ${fmt(d.built_modules)} of ${fmt(d.total_modules)} modules`;
-    eta = d.eta_seconds != null ? `Compile: about ${dur(d.eta_seconds)} left · then audits + replay (≈ 1 h)` : 'Estimating…';
-  } else if (cur[0][0] === 'replay') {
-    const r = g('replay') || {};
-    label = `Stage 4 of 4 · Kernel replay` + (r.total ? ` · ${fmt(r.done)} of ${fmt(r.total)} modules` : ' · preparing');
-    eta = r.eta_seconds != null && r.done < r.total ? `About ${dur(r.eta_seconds)} left · done ≈ ${clock(d.updated + r.eta_seconds)}`
-        : r.total && r.done >= r.total ? 'Cross-checking with leanchecker…' : 'Estimating… (≈ 50–90 min)';
-    k = [r.done, r.total != null ? r.total - r.done : null, r.rate_per_min];
+  const ph = id => phases.find(x => x.id === id) || {};
+  const g = id => (L && L.stages && L.stages[id]) || null;
+  const pf = p => (p >= 10 || p === 0 ? p.toFixed(1) : p.toFixed(2));
+  // --- Compile (main bar) ---
+  const b = ph('build'), bp = 100 * frac('build');
+  $('pct').innerHTML = `<span class="tag">Compile</span>${pf(bp)}<small>%</small>`;
+  $('bar').style.width = Math.min(100, bp) + '%';
+  $('counts').textContent = `${fmt(d.built_modules)} of ${fmt(d.total_modules)} modules`;
+  const bmin = b.start ? ((b.end || d.updated) - b.start) / 60 : null;
+  $('eta').textContent = b.state === 'done' ? `Done in ${dur(b.end - b.start)} · finished ${clock(b.end)}`
+    : b.state === 'failed' ? 'Stopped — see phases'
+    : d.eta_seconds != null ? `About ${dur(d.eta_seconds)} left · done ≈ ${clock(d.updated + d.eta_seconds)}` : 'Estimating…';
+  $('k-built').textContent = fmt(d.built_modules);
+  $('k-rem').textContent = fmt(d.remaining_modules);
+  $('k-rate').textContent = b.state === 'done' && bmin ? fmt(Math.round(d.total_modules / bmin)) : fmt(d.rate_per_min);
+  $('k-el').textContent = b.start ? dur((b.end || d.updated) - b.start) : '—';
+  // --- Kernel replay (second bar) ---
+  const r = ph('replay'), rg = g('replay'), rp = 100 * frac('replay');
+  $('pct2').innerHTML = `${pf(rp)}<small>%</small>`;
+  $('bar2').style.width = Math.min(100, rp) + '%';
+  let c2, e2;
+  if (r.state === 'done') { c2 = r.note ? r.note.split(';')[0] : 'Replay passed'; e2 = r.start ? `Done in ${dur(r.end - r.start)} · finished ${clock(r.end)}` : 'Done'; }
+  else if (r.state === 'failed') { c2 = 'Replay reported a problem'; e2 = 'See phases below'; }
+  else if (r.state === 'running') {
+    if (!rg || !rg.total) { c2 = 'Preparing module list…'; e2 = 'Estimating… (≈ 50–90 min)'; }
+    else if (rg.done < rg.total) {
+      c2 = `${fmt(rg.done)} of ${fmt(rg.total)} modules` + (rg.failed ? ` · ${fmt(rg.failed)} failed` : '');
+      e2 = rg.eta_seconds != null ? `About ${dur(rg.eta_seconds)} left · done ≈ ${clock(d.updated + rg.eta_seconds)}` : 'Estimating… (≈ 50–90 min)';
+    } else { c2 = `${fmt(rg.done)} modules replayed · leanchecker cross-check ${rg.crosscheck_done} / ${rg.crosscheck_total}`; e2 = 'Finishing…'; }
   } else {
-    label = 'Stages ' + cur.map(c => c[3]).join(' & ') + ' of 4 · ' + cur.map(c => c[1]).join(' + ');
-    const n = cur.reduce((a, c) => a + ((g(c[0]) || {}).done || 0), 0), t = cur.reduce((a, c) => a + ((g(c[0]) || {}).total || 0), 0);
-    if (t) label += ` · ${n} of ${t} checks`;
-    eta = 'A few minutes · then kernel replay (≈ 50–90 min)';
-    k = [n, t - n, null];
+    const aud = ['axioms', 'statement'].filter(id => ph(id).state === 'running');
+    if (b.state !== 'done') c2 = 'Starts after compile and the axiom / statement audits';
+    else if (aud.length) {
+      const n = aud.reduce((a, id) => a + ((g(id) || {}).done || 0), 0), t = aud.reduce((a, id) => a + ((g(id) || {}).total || 0), 0);
+      c2 = 'Waiting for the axiom / statement audits' + (t ? ` · ${n} of ${t} checks done` : '');
+    } else c2 = 'Starting…';
+    e2 = '≈ 50–90 min once started';
   }
-  $('counts').textContent = label; $('eta').textContent = eta;
-  $('k-built').textContent = fmt(k[0]); $('k-rem').textContent = fmt(k[1]); $('k-rate').textContent = fmt(k[2]);
+  $('counts2').textContent = c2; $('eta2').textContent = e2;
 }
 function render(d){
   const age = Date.now()/1000 - d.updated, stale = age > 900;
