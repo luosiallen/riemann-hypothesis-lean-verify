@@ -123,6 +123,12 @@ ol.plain li:last-child{border-bottom:1px solid var(--faint)}
 ol.plain .k{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 ol.plain .v{color:var(--muted);font-variant-numeric:tabular-nums}
 details.wr{margin-top:32px;font-size:13px}
+.plog{margin-top:72px}
+.plog .pf{margin-top:18px}
+.plog .pfn{font:11.5px var(--mono);color:var(--muted);margin-bottom:6px}
+.plog pre{font:12px/1.7 var(--mono);color:var(--ink);opacity:.85;max-height:300px;overflow:auto;white-space:pre;
+  border-top:1px solid var(--faint);border-bottom:1px solid var(--faint);padding:10px 0}
+.plog .wait{font-size:13px;color:var(--muted)}
 details.wr summary{cursor:pointer;color:var(--muted);list-style:none}
 details.wr summary::before{content:"+ ";font-family:var(--mono)}
 details.wr[open] summary::before{content:"− "}
@@ -222,7 +228,7 @@ a:hover{text-decoration-color:currentColor}
   </section>
 
   <section>
-    <div class="lh"><h2>Build log</h2><span id="lg-upd"></span></div>
+    <div class="lh"><h2>Phase 1 · Compile log</h2><span id="lg-upd"></span></div>
     <div class="sched" id="sched"></div>
     <div class="term" id="term" aria-live="off"><div class="tl muted">Loading log…</div></div>
     <div class="cols">
@@ -233,6 +239,8 @@ a:hover{text-decoration-color:currentColor}
     <div id="errs"></div>
     <p class="mach"><span id="mach"></span> · <a id="rawlog" href="#" target="_blank" rel="noopener">Raw build log</a></p>
   </section>
+
+  <section id="plogs"></section>
 
   <section class="foot">
     A passing build means Lean’s kernel accepted every proof term. The audit then prints the axioms each top-level theorem
@@ -396,6 +404,7 @@ function render(d){
     const fin = allDone ? `<span class="ph-ts">finished ${utcD(Math.max(...ends))} · ${utcT(Math.max(...ends))} UTC</span>` : '';
     return `<li class="${st} fin"><span class="s ${st}">${st === 'done' ? '✓' : st === 'failed' ? '✕' : ''}</span><span><span class="ph-n"><span class="ph-k"></span>Complete</span>${fin}${note ? `<span class="ph-note">${esc(note)}</span>` : ''}</span><span class="ph-t">${t}</span></li>`;
   })();
+  if (L) renderPhaseLogs();
   $('mach').textContent = `${d.cpu_percent}% CPU · ${d.lean_processes} lean processes · ${d.mem_used_gb} / ${d.mem_total_gb} GB`;
 
 }
@@ -403,8 +412,22 @@ const LOGS = `https://raw.githubusercontent.com/${owner}/${repo}/status/logs.jso
 $('rawlog').href = `https://raw.githubusercontent.com/${owner}/${repo}/status/build_tail.txt`;
 let lastIdx = 0;
 const short = m => m.split('.').slice(-2).join('.');
+function renderPhaseLogs(){
+  const P = (L && L.phase_logs) || {}, phases = (S && S.phases) || [];
+  const st = id => (phases.find(x => x.id === id) || {}).state || 'pending';
+  const sec = (id, title) => {
+    const fs = P[id] || [];
+    const body = fs.length ? fs.map(f => `<div class="pf"><div class="pfn">${esc(f.f)}</div><pre>${esc(f.t)}</pre></div>`).join('')
+      : `<p class="wait">${st(id) === 'pending' ? 'Not started yet.' : 'Waiting for output…'}</p>`;
+    return `<div class="plog"><div class="lh"><h2>${title}</h2><span>${st(id) === 'done' ? '✓ passed' : st(id) === 'running' ? 'running' : st(id) === 'failed' ? 'failed' : ''}</span></div>${body}</div>`;
+  };
+  const keep = [...document.querySelectorAll('#plogs pre')].map(p => p.scrollTop);
+  $('plogs').innerHTML = sec('axioms', 'Phase 2 · Axiom audit log') + sec('statement', 'Phase 3 · Statement audit log')
+    + sec('replay', 'Phase 4 · Kernel replay log') + (P.pipeline ? sec('pipeline', 'Pipeline log') : '');
+  document.querySelectorAll('#plogs pre').forEach((p, i) => { if (keep[i]) p.scrollTop = keep[i]; });
+}
 function renderLogs(l){
-  L = l; hero(); if (S) render(S);
+  L = l; hero(); if (S) render(S); renderPhaseLogs();
   $('lg-upd').textContent = 'Server log · ' + dur(Date.now()/1000 - L.updated) + ' ago';
   const s = L.scheduler, c = L.counts || {};
   $('sched').innerHTML = (s ? [['running',s.running],['ready',s.ready],['done',s.done],['failed',s.failed]] : [])

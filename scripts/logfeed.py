@@ -208,6 +208,77 @@ def stage_info():
     return out
 
 
+def _clip(text, n=None, w=400):
+    lines = [rel(l).replace("/home/allenluo", "~")[:w] for l in text.splitlines()]
+    return "\n".join(lines[-n:] if n else lines)
+
+
+def phase_logs():
+    """Raw output of each post-compile phase, as {phase: [{"f": file label, "t": text}]}."""
+    try:
+        ph = {p["id"]: p for p in json.load(open(EVENTS))["phases"]}
+    except (OSError, ValueError, KeyError):
+        return None
+    out = {}
+
+    def files(pid, items):
+        # Outputs are overwritten on each pipeline (re)start, so anything newer than this run's compile start is current.
+        since = ph.get("build", {}).get("start")
+        if not since or ph[pid].get("state") == "pending":
+            return
+        got = []
+        for label, path, n in items:
+            t = _fresh(path, since)
+            if t:
+                got.append({"f": label, "t": _clip(t, n)})
+        if got:
+            out[pid] = got
+
+    walks = [(f"walk_{t}.txt", f"{ROUT}/walk_{t}.txt", None) for t in WALKS]
+    files("axioms", [("results/audit.log  (#print axioms)", f"{RES}/audit.log", None)] + walks)
+    files("statement", [("results/statement_audit.txt", f"{RES}/statement_audit.txt", None),
+                        ("results/package_revs.txt", f"{RES}/package_revs.txt", None)])
+    r = ph.get("replay", {})
+    if r.get("start") and r.get("state") != "pending":
+        since, cdir, got = r["start"], f"{ROUT}/chunks", []
+        try:
+            outs = [os.path.join(cdir, n) for n in os.listdir(cdir) if n.endswith(".out")]
+            outs = [f for f in outs if os.path.getmtime(f) >= since - 5]
+            outs.sort(key=os.path.getmtime)
+        except OSError:
+            outs = []
+        recent, fails = [], []
+        for f in outs[-12:]:
+            try:
+                recent += [l for l in open(f, errors="replace").read().splitlines() if l.startswith(("OK ", "FAIL "))][-5:]
+            except OSError:
+                pass
+        for f in outs:
+            try:
+                txt = open(f, errors="replace").read()
+            except OSError:
+                continue
+            if "FAIL " in txt:
+                fails += [l for l in txt.splitlines() if l.startswith("FAIL ")]
+        if recent:
+            got.append({"f": "replayexact · latest results (OK = module re-checked by the kernel, with time)", "t": _clip("\n".join(recent[-40:]))})
+        got.append({"f": "replayexact · failures", "t": _clip("\n".join(fails[:50])) if fails else "(none)"})
+        for label, path, n in [("results/replay_summary.txt", f"{RES}/replay_summary.txt", None),
+                               ("results/leanchecker_crosscheck.txt", f"{RES}/leanchecker_crosscheck.txt", 80),
+                               ("results/negative_control.txt", f"{RES}/negative_control.txt", None),
+                               ("results/fresh_replay.txt  (supplementary)", f"{RES}/fresh_replay.txt", None)]:
+            t = _fresh(path, since)
+            if t:
+                got.append({"f": label, "t": _clip(t, n)})
+        out["replay"] = got
+    try:
+        out["pipeline"] = [{"f": "kv/chain.log  (post-compile pipeline)",
+                            "t": _clip(tail_bytes(f"{ROOT}/kv/chain.log", 20000)[0], 30, 300)}]
+    except Exception:
+        pass
+    return out
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     rows, slow, counts = build_info()
@@ -225,6 +296,7 @@ def main():
         "errors": errs,
         "scheduler": sched_info(),
         "stages": stage_info(),
+        "phase_logs": phase_logs(),
     }
     tmp = f"{OUT}/logs.json.tmp"
     json.dump(feed, open(tmp, "w"), ensure_ascii=False)
