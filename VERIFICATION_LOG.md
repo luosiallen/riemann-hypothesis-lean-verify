@@ -55,7 +55,7 @@ step 6 (independent replay) matter.
 - `lake exe cache get`: 8,690 prebuilt Mathlib files in 73 s. Mathlib HEAD = `0df444a360ea…` as pinned.
 - `lake-manifest.json` semantically identical to the one shipped in the archive.
 
-## 4. Kernel check (full build) — done (19:14–21:44)
+## 4. Kernel check (full build) — done (19:14–21:15)
 ### Run 2 — 288 cores (2 × Xeon 6985P-C), 1 TB RAM, fresh build
 
 - **17:49:55** fresh `lake build` (all 11 default targets) with `LEAN_NUM_THREADS=288`, as requested.
@@ -92,6 +92,12 @@ step 6 (independent replay) matter.
   loop; the original binary is kept as `axiomwalk.v1`). `#print axioms` and the statement audit were re-run as
   part of the restart. A test copy of the fixed walk finished `riemannHypothesis` (1,478,219 reachable constants)
   in about 5.5 min instead of an estimated 3 h.
+- **22:16** by the operator's decision only Phase 4 (the full replay) runs; the 59-module shipped-`leanchecker`
+  cross-check and the negative-control re-run were dropped. `chain.sh` (bash process only) was stopped while its
+  replay kept running, and `chain_tail.sh` took over: replay summary and commit, then the supplementary
+  `leanchecker --fresh Main`, whose dashboard phase is posted only when it has finished.
+- **22:22** by the operator's decision `leanchecker --fresh Main` is not run either: the run ends with Phase 4.
+  `chain_tail.sh` (bash process only) was restarted without that step; the replay kept running throughout.
 - **Result:** `EXIT 0`, built=175187/175187 failed=0 blocked=0 not_run=0, wall time 2:00:33 for the `sched.py` phase.
 - Failed modules (`✖` lines): 0. Modules with any warning: 104066. Warning lines mentioning `sorry`: 0.
 - Details: [`results/build_summary.txt`](results/build_summary.txt); throughput samples every 5 min: [`results/throughput_run2.txt`](results/throughput_run2.txt).
@@ -124,7 +130,7 @@ step 6 (independent replay) matter.
 - Progress is published to the dashboard every 120 s.
 - Run 1's record ends here: sections 5–7 were still pending when that machine's session ended. Run 2 redoes everything from a fresh build.
 
-## 5. Axiom audit — done (21:47–21:50)
+## 5. Axiom audit — done (21:44–21:50)
 
 Two independent methods. (1) `#print axioms` (`audit/Audit.lean`). In Lean 4.33 this reads axiom
 lists that each `.olean` pre-computes at export time and silently skips unknown constants, so
@@ -141,7 +147,7 @@ from each theorem in the fully imported environment and fails on any missing con
 
 Verdict: All 5 theorems: only Classical.choice,Quot.sound,propext (#print axioms and independent body walk agree). Raw output: [`results/audit.log`](results/audit.log), [`results/axiom_walk.txt`](results/axiom_walk.txt).
 
-## 6. Statement audit — done (21:47–21:50)
+## 6. Statement audit — done (21:44–21:50)
 
 `StatementAudit.lean` (in `results/tools/`, run against the built `Main`) checks, by machine:
 
@@ -196,7 +202,7 @@ def PrimitiveDirichletLZerosOnLine : Prop :=
 
 Verdict: Mathlib RiemannHypothesis/riemannZeta/LFunction/IsPrimitive (Mathlib 0df444a, clean); RiemannZetaZerosOnLine = RiemannHypothesis by rfl; Statements imports only Mathlib; theorem types exact. Raw output: [`results/statement_audit.txt`](results/statement_audit.txt).
 
-## 7. Independent replay — pending
+## 7. Independent replay — done (21:50–22:49)
 
 Tool: the kernel replay checker shipped with the toolchain itself, `leanchecker` (Lean v4.33.1,
 `src/lean/LeanChecker.lean`; the upstreamed successor of `lean4checker`). For each module it imports the
@@ -213,13 +219,24 @@ reported. It runs on the exact import closure of `Main` as recorded in the `.ole
 modules over 256 parallel processes. Mathlib and the other packages (prebuilt cache, never compiled here) are
 replayed too.
 
-Smoke tests before the build finished (also re-run by the chain into
-[`results/negative_control.txt`](results/negative_control.txt)): a 2-line module that adds
+Smoke tests before the build finished: a 2-line module that adds
 `bogusFalse : False := True.intro` with `debug.skipKernelTC` compiles, and `#print axioms` on a theorem using it
 reports **no axioms**; shipped `leanchecker` and `replayexact` both reject it (`(kernel) declaration type
 mismatch`). Both pass a correct control module and Mathlib modules (`Mathlib.Logic.Basic`,
 `Mathlib.NumberTheory.LSeries.RiemannZeta`, 21 modules of `Mathlib.NumberTheory.LSeries`).
 
-Status: next: kernel replay of Main's import closure, 186,200 modules, 256 parallel. Sample of 64 modules: mean 2.9 s each, so ~35-50 min; expected start ~21:52 UTC, done ~22:30-22:45 UTC
+```
+tool=replayexact (verbatim leanchecker replayFromImports, Lean v4.33.1)
+closure_noncore_modules=183877 core_modules_skipped=2323
+replayed_ok=183877 failed=0 not_ok=0
+wall_seconds=3557 sum_module_seconds=816978
+ok_by_root={'Development': 141928, 'Formalism': 18254, 'GroundTheory': 8507, 'Mathlib': 8312, 'ReciprocityTheory': 3845, 'CompanionTheory': 2027, 'PositivityTheory': 449, 'Batteries': 192, 'Lemmata': 167, 'Aesop': 132, 'Qq': 14, 'Plausible': 13, 'ProofWidgets': 13, 'ImportGraph': 10, 'BuildAid': 5, 'LeanSearchClient': 4, 'Supplements': 3, 'Statements': 1, 'Main': 1}
+slowest=GroundTheory.PAdicHodge.BCrisGalois 391.2s, Development.WeilBound.CoreStatements.PadicHodgeComparison.EtaleCohomologyComparison.BocksteinBaseChange.TiltSectionUnits.FcIsUnitSub 343.6s, Development.AbelianVarietyTheory.Proofs.UniformizationProofs.ExistsUniqueTwistedSectionOfCompatibleLevels 289.8s, Development.AbelianVarietyTheory.Proofs.IwasawaDecomposition.FormsRe 275.3s, Development.AbelianVarietyTheory.Proofs.CoherentCohomologyProofs.PushComparisonBijectiveOfIsClosedEmbedding 250.4s, GroundTheory.ArithmeticGeometry.SchemeCohomology.ProperCohomology.FormalTower 224.6s, GroundTheory.PAdicHodge.BCrisTensorK 211.3s, Development.AbelianVarietyTheory.Definitions.GaloisGeometry.SectionOfFreeOnUnitComp 198.3s, GroundTheory.PAdicHodge.BCrisNewton 176.7s, Development.AutomorphicSpectrum.Proofs.GeometryProofs.IsEigFrameOfFrPt 167.7s
+VERDICT OK
+```
 
-Supplementary: `leanchecker --fresh Main` (re-adds every constant of the whole closure, Mathlib included, to an empty environment, single-threaded): queued after the parallel replay.
+By the operator's decision (22:15 UTC), the planned 59-module cross-check with the shipped `leanchecker` binary and the re-run of the negative control were dropped: Phase 4 replays every module of the closure with leanchecker's own `replayFromImports` (verbatim copy).
+
+Verdict: 183877 modules of Main's import closure re-checked by the kernel (replayexact), 0 failures (59 min).
+
+`leanchecker --fresh Main` (single-threaded re-check of the whole closure in an empty environment) was not run, by the operator's decision (22:22 UTC).

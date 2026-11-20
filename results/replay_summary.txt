@@ -1,0 +1,7 @@
+tool=replayexact (verbatim leanchecker replayFromImports, Lean v4.33.1)
+closure_noncore_modules=183877 core_modules_skipped=2323
+replayed_ok=183877 failed=0 not_ok=0
+wall_seconds=3557 sum_module_seconds=816978
+ok_by_root={'Development': 141928, 'Formalism': 18254, 'GroundTheory': 8507, 'Mathlib': 8312, 'ReciprocityTheory': 3845, 'CompanionTheory': 2027, 'PositivityTheory': 449, 'Batteries': 192, 'Lemmata': 167, 'Aesop': 132, 'Qq': 14, 'Plausible': 13, 'ProofWidgets': 13, 'ImportGraph': 10, 'BuildAid': 5, 'LeanSearchClient': 4, 'Supplements': 3, 'Statements': 1, 'Main': 1}
+slowest=GroundTheory.PAdicHodge.BCrisGalois 391.2s, Development.WeilBound.CoreStatements.PadicHodgeComparison.EtaleCohomologyComparison.BocksteinBaseChange.TiltSectionUnits.FcIsUnitSub 343.6s, Development.AbelianVarietyTheory.Proofs.UniformizationProofs.ExistsUniqueTwistedSectionOfCompatibleLevels 289.8s, Development.AbelianVarietyTheory.Proofs.IwasawaDecomposition.FormsRe 275.3s, Development.AbelianVarietyTheory.Proofs.CoherentCohomologyProofs.PushComparisonBijectiveOfIsClosedEmbedding 250.4s, GroundTheory.ArithmeticGeometry.SchemeCohomology.ProperCohomology.FormalTower 224.6s, GroundTheory.PAdicHodge.BCrisTensorK 211.3s, Development.AbelianVarietyTheory.Definitions.GaloisGeometry.SectionOfFreeOnUnitComp 198.3s, GroundTheory.PAdicHodge.BCrisNewton 176.7s, Development.AutomorphicSpectrum.Proofs.GeometryProofs.IsEigFrameOfFrPt 167.7s
+VERDICT OK
