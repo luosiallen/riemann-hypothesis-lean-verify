@@ -334,7 +334,10 @@ function hero(){
     const x = ph(id), st = x.state || 'pending', gg = g(id), p = 100 * frac(id);
     let c = '', e = '';
     if (id === 'build') {
-      c = `${fmt(d.built_modules)} of ${fmt(d.total_modules)} modules`;
+      const sc = (L && L.scheduler) || {}, ct = (L && L.counts) || {};
+      const passed = ct.ok != null ? ct.ok + ct.warn : d.built_modules, errs = sc.failed != null ? sc.failed : (d.error_count || 0);
+      c = `${fmt(passed)} passed · ${fmt(errs)} error${errs === 1 ? '' : 's'}` + (sc.blocked ? ` · ${fmt(sc.blocked)} blocked` : '')
+        + ` · ${fmt(d.total_modules)} total` + (d.sorry_warnings != null ? ` · ${fmt(d.sorry_warnings)} sorry` : '');
       e = st === 'done' ? `Done in ${dur(x.end - x.start)} · ${span(x)}`
         : st === 'failed' ? 'Stopped — see phases'
         : d.eta_seconds != null ? `About ${dur(d.eta_seconds)} left · done ≈ ${clock(d.updated + d.eta_seconds)}` : 'Estimating…';
