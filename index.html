@@ -32,6 +32,15 @@ header{display:flex;flex-direction:column;gap:14px}
 .pct small{font-size:.4em;letter-spacing:0;color:var(--muted);margin-left:4px}
 .track{height:2px;background:var(--faint);margin:36px 0 14px;position:relative;overflow:hidden}
 .track>i{position:absolute;inset:0 auto 0 0;background:var(--accent);width:0;transition:width 1s ease}
+.pb{margin-top:44px}.pb:first-child{margin-top:0}
+.pb .lbl{font-size:13px;color:var(--muted);letter-spacing:.02em}
+.pb .lbl b{font-weight:500;color:var(--ink)}
+.pb .pv{font-size:clamp(44px,8vw,64px);font-weight:300;letter-spacing:-.04em;line-height:1;margin-top:10px}
+.pb .pv small{font-size:.4em;letter-spacing:0;color:var(--muted);margin-left:3px}
+.pb .track{margin:20px 0 12px}
+.pb.pending .pv{color:var(--muted)}
+.pb.done .track>i{background:var(--ok)}
+.stats-cap{margin:72px 0 -40px}
 .hero2{margin-top:44px}
 .h2h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .h2h .nm{font-size:13px;color:var(--muted);letter-spacing:.02em}
@@ -80,6 +89,7 @@ ol li:last-child{border-bottom:1px solid var(--faint)}
 .s.failed{color:var(--bad)}
 .ph-note{display:block;font-size:12px;color:var(--muted);margin-top:2px;word-break:break-word}
 .ph-t{font-size:12px;color:var(--muted);white-space:nowrap}
+.ph-k{display:inline-block;min-width:64px;font-size:12px;color:var(--muted);font-weight:500}
 .ph-ts{display:block;font:11.5px var(--mono);color:var(--muted);margin-top:4px;letter-spacing:-.01em}
 .ph-items .at{font-family:var(--mono);font-size:11px;opacity:.8}
 .pending .ph-n{color:var(--muted)}
@@ -196,17 +206,9 @@ a:hover{text-decoration-color:currentColor}
     1,673 new files contain <code>_src</code> instance names. Progress below counts the new run only.</p>
   </aside>
 
-  <div class="hero">
-    <div class="pct" id="pct">—</div>
-    <div class="track"><i id="bar"></i></div>
-    <div class="line"><span id="counts">—</span><span id="eta">—</span></div>
-    <div class="hero2">
-      <div class="h2h"><span class="nm">Kernel replay</span><span class="p2" id="pct2">—</span></div>
-      <div class="track"><i id="bar2"></i></div>
-      <div class="line"><span id="counts2">—</span><span id="eta2">—</span></div>
-    </div>
-  </div>
+  <div class="hero" id="hero"></div>
 
+  <h2 class="stats-cap">Phase 1 · Compile details</h2>
   <div class="stats">
     <div class="stat"><div class="l">Checked</div><div class="v" id="k-built">—</div></div>
     <div class="stat"><div class="l">Remaining</div><div class="v" id="k-rem">—</div></div>
@@ -319,48 +321,51 @@ function phProg(id){
   const items = g.items ? `<span class="ph-items">${g.items.map(i => `<span class="${i.ok ? 'ok' : ''}">${i.ok ? '✓' : '○'} ${esc(i.n)}${i.ok && i.t ? ` <span class="at">${utcT(i.t)}</span>` : ''}</span>`).join('')}</span>` : '';
   return `<span class="ph-p"><span class="track"><i style="width:${q}%"></i></span><span>${txt}</span></span>${items}`;
 }
+const PH = [['build', 'Compile'], ['axioms', 'Axiom audit'], ['statement', 'Statement audit'], ['replay', 'Kernel replay']];
+const phNum = id => { const i = PH.findIndex(x => x[0] === id); return i < 0 ? null : i + 1; };
+const span = x => x.start ? `${utcT(x.start)} → ${x.end ? utcT(x.end) : 'now'} UTC` : '';
 function hero(){
   if (!S) return;
   const d = S, phases = d.phases || [];
   const ph = id => phases.find(x => x.id === id) || {};
   const g = id => (L && L.stages && L.stages[id]) || null;
   const pf = p => (p >= 10 || p === 0 ? p.toFixed(1) : p.toFixed(2));
-  // --- Compile (main bar) ---
-  const b = ph('build'), bp = 100 * frac('build');
-  $('pct').innerHTML = `<span class="tag">Compile</span>${pf(bp)}<small>%</small>`;
-  $('bar').style.width = Math.min(100, bp) + '%';
-  $('counts').textContent = `${fmt(d.built_modules)} of ${fmt(d.total_modules)} modules`;
-  const bmin = b.start ? ((b.end || d.updated) - b.start) / 60 : null;
-  $('eta').textContent = b.state === 'done' ? `Done in ${dur(b.end - b.start)} · finished ${clock(b.end)}`
-    : b.state === 'failed' ? 'Stopped — see phases'
-    : d.eta_seconds != null ? `About ${dur(d.eta_seconds)} left · done ≈ ${clock(d.updated + d.eta_seconds)}` : 'Estimating…';
+  const blocks = PH.map(([id, name], i) => {
+    const x = ph(id), st = x.state || 'pending', gg = g(id), p = 100 * frac(id);
+    let c = '', e = '';
+    if (id === 'build') {
+      c = `${fmt(d.built_modules)} of ${fmt(d.total_modules)} modules`;
+      e = st === 'done' ? `Done in ${dur(x.end - x.start)} · ${span(x)}`
+        : st === 'failed' ? 'Stopped — see phases'
+        : d.eta_seconds != null ? `About ${dur(d.eta_seconds)} left · done ≈ ${clock(d.updated + d.eta_seconds)}` : 'Estimating…';
+    } else if (id === 'replay') {
+      if (st === 'done') { c = x.note ? x.note.split(';')[0] : 'Replay passed'; e = `Done in ${dur(x.end - x.start)} · ${span(x)}`; }
+      else if (st === 'failed') { c = 'Replay reported a problem'; e = 'See phases below'; }
+      else if (st === 'running') {
+        if (!gg || !gg.total) { c = 'Preparing module list…'; e = `Started ${utcT(x.start)} UTC · ≈ 50–90 min`; }
+        else if (gg.done < gg.total) {
+          c = `${fmt(gg.done)} of ${fmt(gg.total)} modules` + (gg.failed ? ` · ${fmt(gg.failed)} failed` : '');
+          e = gg.eta_seconds != null ? `About ${dur(gg.eta_seconds)} left · done ≈ ${clock(d.updated + gg.eta_seconds)}` : `Started ${utcT(x.start)} UTC · estimating…`;
+        } else { c = `${fmt(gg.done)} modules replayed · leanchecker cross-check ${gg.crosscheck_done} / ${gg.crosscheck_total}`; e = 'Finishing…'; }
+      } else { c = 'Starts after Phases 2 and 3'; e = '≈ 50–90 min once started'; }
+    } else {
+      const tot = gg ? gg.total : (id === 'axioms' ? 6 : 3);
+      if (st === 'done') { c = `${tot} of ${tot} checks passed`; e = `Done in ${dur(x.end - x.start)} · ${span(x)}`; }
+      else if (st === 'failed') { c = 'Check failed'; e = 'See phases below'; }
+      else if (st === 'running') { c = `${gg ? gg.done : 0} of ${tot} checks`; e = `Running since ${utcT(x.start)} UTC`; }
+      else { c = `${tot} checks`; e = 'Starts after Phase 1'; }
+    }
+    return `<div class="pb ${st}"><div class="lbl"><b>Phase ${i + 1}</b> · ${name}</div>
+      <div class="pv">${pf(p)}<small>%</small></div>
+      <div class="track"><i style="width:${Math.min(100, p)}%"></i></div>
+      <div class="line"><span>${esc(c)}</span><span>${esc(e)}</span></div></div>`;
+  });
+  $('hero').innerHTML = blocks.join('');
+  const b = ph('build'), bmin = b.start ? ((b.end || d.updated) - b.start) / 60 : null;
   $('k-built').textContent = fmt(d.built_modules);
   $('k-rem').textContent = fmt(d.remaining_modules);
   $('k-rate').textContent = b.state === 'done' && bmin ? fmt(Math.round(d.total_modules / bmin)) : fmt(d.rate_per_min);
   $('k-el').textContent = b.start ? dur((b.end || d.updated) - b.start) : '—';
-  // --- Kernel replay (second bar) ---
-  const r = ph('replay'), rg = g('replay'), rp = 100 * frac('replay');
-  $('pct2').innerHTML = `${pf(rp)}<small>%</small>`;
-  $('bar2').style.width = Math.min(100, rp) + '%';
-  let c2, e2;
-  if (r.state === 'done') { c2 = r.note ? r.note.split(';')[0] : 'Replay passed'; e2 = r.start ? `Done in ${dur(r.end - r.start)} · finished ${clock(r.end)}` : 'Done'; }
-  else if (r.state === 'failed') { c2 = 'Replay reported a problem'; e2 = 'See phases below'; }
-  else if (r.state === 'running') {
-    if (!rg || !rg.total) { c2 = 'Preparing module list…'; e2 = 'Estimating… (≈ 50–90 min)'; }
-    else if (rg.done < rg.total) {
-      c2 = `${fmt(rg.done)} of ${fmt(rg.total)} modules` + (rg.failed ? ` · ${fmt(rg.failed)} failed` : '');
-      e2 = rg.eta_seconds != null ? `About ${dur(rg.eta_seconds)} left · done ≈ ${clock(d.updated + rg.eta_seconds)}` : 'Estimating… (≈ 50–90 min)';
-    } else { c2 = `${fmt(rg.done)} modules replayed · leanchecker cross-check ${rg.crosscheck_done} / ${rg.crosscheck_total}`; e2 = 'Finishing…'; }
-  } else {
-    const aud = ['axioms', 'statement'].filter(id => ph(id).state === 'running');
-    if (b.state !== 'done') c2 = 'Starts after compile and the axiom / statement audits';
-    else if (aud.length) {
-      const n = aud.reduce((a, id) => a + ((g(id) || {}).done || 0), 0), t = aud.reduce((a, id) => a + ((g(id) || {}).total || 0), 0);
-      c2 = 'Waiting for the axiom / statement audits' + (t ? ` · ${n} of ${t} checks done` : '');
-    } else c2 = 'Starting…';
-    e2 = '≈ 50–90 min once started';
-  }
-  $('counts2').textContent = c2; $('eta2').textContent = e2;
 }
 function render(d){
   const age = Date.now()/1000 - d.updated, stale = age > 900;
@@ -378,14 +383,14 @@ function render(d){
   }).join('');
   $('phases').innerHTML = phases.map(x => {
     const t = x.end ? dur(x.end - x.start) : x.start ? dur(d.updated - x.start) + '…' : '';
-    return `<li class="${x.state}"><span class="s ${x.state}">${x.state === 'done' ? '✓' : x.state === 'failed' ? '✕' : ''}</span><span><span class="ph-n">${esc(x.name)}</span>${x.start ? `<span class="ph-ts">${stamp(x)}</span>` : ''}${x.note ? `<span class="ph-note">${esc(x.note)}</span>` : ''}${x.state === 'running' ? phProg(x.id) : ''}</span><span class="ph-t">${t}</span></li>`;
+    return `<li class="${x.state}"><span class="s ${x.state}">${x.state === 'done' ? '✓' : x.state === 'failed' ? '✕' : ''}</span><span><span class="ph-n">${phNum(x.id) ? `<span class="ph-k">Phase ${phNum(x.id)}</span>` : '<span class="ph-k">Setup</span>'}${esc(x.name)}</span>${x.start ? `<span class="ph-ts">${stamp(x)}</span>` : ''}${x.note ? `<span class="ph-note">${esc(x.note)}</span>` : ''}${x.state === 'running' ? phProg(x.id) : ''}</span><span class="ph-t">${t}</span></li>`;
   }).join('') + (() => {
     const st = allDone ? 'done' : failed ? 'failed' : 'pending';
     const ends = phases.map(p => p.end || 0), starts = phases.map(p => p.start).filter(Boolean);
     const t = allDone && starts.length ? dur(Math.max(...ends) - Math.min(...starts)) : '';
     const note = allDone ? 'All phases passed' : failed ? 'Stopped at: ' + failed.name : '';
     const fin = allDone ? `<span class="ph-ts">finished ${utcD(Math.max(...ends))} · ${utcT(Math.max(...ends))} UTC</span>` : '';
-    return `<li class="${st} fin"><span class="s ${st}">${st === 'done' ? '✓' : st === 'failed' ? '✕' : ''}</span><span><span class="ph-n">Complete</span>${fin}${note ? `<span class="ph-note">${esc(note)}</span>` : ''}</span><span class="ph-t">${t}</span></li>`;
+    return `<li class="${st} fin"><span class="s ${st}">${st === 'done' ? '✓' : st === 'failed' ? '✕' : ''}</span><span><span class="ph-n"><span class="ph-k"></span>Complete</span>${fin}${note ? `<span class="ph-note">${esc(note)}</span>` : ''}</span><span class="ph-t">${t}</span></li>`;
   })();
   $('mach').textContent = `${d.cpu_percent}% CPU · ${d.lean_processes} lean processes · ${d.mem_used_gb} / ${d.mem_total_gb} GB`;
 
