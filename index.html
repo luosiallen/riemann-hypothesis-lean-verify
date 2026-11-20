@@ -20,13 +20,13 @@
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.6 var(--sans);font-feature-settings:"tnum" 1,"cv11" 1;-webkit-font-smoothing:antialiased}
 main{max-width:760px;margin:0 auto;padding:72px 16px 96px}
-header{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
-.title{font-size:14px;font-weight:500;letter-spacing:.01em}
+header{display:flex;flex-direction:column;gap:14px}
+.title{font-size:clamp(26px,4.2vw,36px);font-weight:500;letter-spacing:-.025em;line-height:1.15}
 .live{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:8px}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:b 2.4s ease-in-out infinite}
 .dot.stale{background:var(--muted);animation:none}
 @keyframes b{50%{opacity:.25}}
-.sub{color:var(--muted);font-size:13px;margin:6px 0 0}
+.sub{color:var(--muted);font-size:14px;margin:12px 0 0}
 .hero{margin:72px 0 0}
 .pct{font-size:clamp(64px,14vw,112px);font-weight:300;letter-spacing:-.045em;line-height:1}
 .pct small{font-size:.4em;letter-spacing:0;color:var(--muted);margin-left:4px}
@@ -50,8 +50,12 @@ svg text{fill:var(--muted);font:11px var(--sans)}
 figure{margin:72px 0 0}
 @media (min-width:1000px){figure{margin-left:-110px;margin-right:-110px}}
 .fig{color:var(--ink)}
+.fig .strip{opacity:.6}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .fig .strip{opacity:1}}
+:root[data-theme="dark"] .fig .strip{opacity:1}
 .fig .fig-lab{font:italic 400 18px "Times New Roman",Times,serif;fill:var(--ink)}
-.fig .fig-txt{font:400 14px var(--sans);fill:var(--ink)}
+.fig .fig-txt{font:500 13px var(--sans);fill:var(--ink);letter-spacing:.01em}
+.fig .fig-sub{font:400 15px "Times New Roman",Times,serif;fill:var(--muted)}
 .fig .fig-num{font:400 17px "Times New Roman",Times,serif;fill:var(--ink)}
 .fig .fig-cap{font:400 12.5px var(--sans);fill:var(--muted)}
 figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
@@ -85,42 +89,56 @@ a:hover{text-decoration-color:currentColor}
   </header>
 
   <figure>
-<svg class="fig" viewBox="0 0 1080 470" role="img" aria-label="The critical strip 0 &lt; Re(s) &lt; 1 with the critical line Re(s) = 1/2 and the first five zeta zeros on it">
-<defs><linearGradient id="sg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#178a94" stop-opacity=".16"/><stop offset="1" stop-color="#178a94" stop-opacity=".03"/></linearGradient><marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0.5 L10,5 L0,9.5 L2.5,5 z" fill="currentColor"/></marker><marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0.5 L10,5 L0,9.5 L2.5,5 z" fill="#d4782a"/></marker></defs>
-<rect x="430" y="62" width="230" height="388" fill="url(#sg)"/>
-<line x1="40" x2="960" y1="390" y2="390" stroke="currentColor" stroke-width="1" marker-end="url(#ak)"/>
-<text x="970" y="395" class="fig-txt">real axis</text>
-<line x1="430" x2="430" y1="450" y2="46" stroke="currentColor" stroke-width="1" marker-end="url(#ak)"/>
-<line x1="660" x2="660" y1="450" y2="46" stroke="currentColor" stroke-width="1" marker-end="url(#ak)"/>
-<text x="430" y="32" text-anchor="middle" class="fig-txt">imaginary axis</text>
-<line x1="545.0" x2="545.0" y1="450" y2="68" stroke="#d4782a" stroke-width="1.6" marker-end="url(#ao)"/>
-<line x1="200" x2="200" y1="385" y2="395" stroke="currentColor" stroke-width="1"/>
-<text x="200" y="414" text-anchor="middle" class="fig-num">−1</text>
-<line x1="430" x2="430" y1="385" y2="395" stroke="currentColor" stroke-width="1"/>
-<text x="440" y="414" text-anchor="start" class="fig-num">0</text>
-<line x1="545.0" x2="545.0" y1="385" y2="395" stroke="currentColor" stroke-width="1"/>
-<text x="555.0" y="414" text-anchor="start" class="fig-num">½</text>
-<line x1="660" x2="660" y1="385" y2="395" stroke="currentColor" stroke-width="1"/>
-<text x="670" y="414" text-anchor="start" class="fig-num">1</text>
-<line x1="890" x2="890" y1="385" y2="395" stroke="currentColor" stroke-width="1"/>
-<text x="890" y="414" text-anchor="middle" class="fig-num">2</text>
-<circle cx="545.0" cy="268.4" r="4" fill="#d4782a"/>
-<text x="559.0" y="272.4" class="fig-cap">½ + 14.13 i</text>
-<circle cx="545.0" cy="209.2" r="4" fill="#d4782a"/>
-<text x="559.0" y="213.2" class="fig-cap">½ + 21.02 i</text>
-<circle cx="545.0" cy="174.9" r="4" fill="#d4782a"/>
-<text x="559.0" y="178.9" class="fig-cap">½ + 25.01 i</text>
-<circle cx="545.0" cy="128.3" r="4" fill="#d4782a"/>
-<text x="559.0" y="132.3" class="fig-cap">½ + 30.42 i</text>
-<circle cx="545.0" cy="106.8" r="4" fill="#d4782a"/>
-<text x="559.0" y="110.8" class="fig-cap">½ + 32.94 i</text>
-<path d="M434,62 q0,-8 8,-8 h95.0 q8,0 8,-8 q0,8 8,8 h95.0 q8,0 8,8" fill="none" stroke="currentColor" stroke-width="1"/>
-<line x1="553.0" y1="44" x2="720" y2="24" stroke="currentColor" stroke-width=".8"/>
-<text x="726" y="28" class="fig-txt">critical strip  0 &lt; Re(<tspan font-style="italic">s</tspan>) &lt; 1</text>
-<line x1="541.0" y1="320" x2="370" y2="298" stroke="currentColor" stroke-width=".8"/>
-<text x="364" y="302" text-anchor="end" class="fig-txt">critical line  Re(<tspan font-style="italic">s</tspan>) = ½</text>
+<svg class="fig" viewBox="0 0 1080 460" role="img" aria-label="The critical strip 0 &lt; Re s &lt; 1 with the critical line Re s = 1/2 and the first ten zeta zeros on it">
+<defs><linearGradient id="sg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#178a94" stop-opacity=".22"/><stop offset=".85" stop-color="#178a94" stop-opacity=".02"/><stop offset="1" stop-color="#178a94" stop-opacity="0"/></linearGradient><linearGradient id="lg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#d4782a" stop-opacity=".95"/><stop offset="1" stop-color="#d4782a" stop-opacity=".35"/></linearGradient><linearGradient id="bg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#178a94" stop-opacity=".6"/><stop offset="1" stop-color="#178a94" stop-opacity="0"/></linearGradient><marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,1 L9,5 L0,9" fill="none" stroke="currentColor" stroke-opacity=".55" stroke-width="1.2"/></marker></defs>
+<rect class="strip" x="430" y="40" width="220" height="402" fill="url(#sg)"/>
+<rect x="429.6" y="40" width=".8" height="402" fill="url(#bg)"/>
+<rect x="649.6" y="40" width=".8" height="402" fill="url(#bg)"/>
+<line x1="60" x2="990" y1="380" y2="380" stroke="currentColor" stroke-opacity=".45" stroke-width=".9" marker-end="url(#ak)"/>
+<text x="1002" y="385" class="fig-num">Re <tspan font-style="italic">s</tspan></text>
+<text x="418" y="48" text-anchor="end" class="fig-num">Im <tspan font-style="italic">s</tspan></text>
+<rect x="539.2" y="40" width="1.6" height="402" fill="url(#lg)"/>
+<line x1="210" x2="210" y1="376" y2="384" stroke="currentColor" stroke-opacity=".45" stroke-width=".9"/>
+<text x="210" y="408" text-anchor="middle" class="fig-num">−1</text>
+<line x1="430" x2="430" y1="376" y2="384" stroke="currentColor" stroke-opacity=".45" stroke-width=".9"/>
+<text x="430" y="408" text-anchor="middle" class="fig-num">0</text>
+<line x1="540.0" x2="540.0" y1="376" y2="384" stroke="currentColor" stroke-opacity=".45" stroke-width=".9"/>
+<text x="540.0" y="408" text-anchor="middle" class="fig-num">½</text>
+<line x1="650" x2="650" y1="376" y2="384" stroke="currentColor" stroke-opacity=".45" stroke-width=".9"/>
+<text x="650" y="408" text-anchor="middle" class="fig-num">1</text>
+<line x1="870" x2="870" y1="376" y2="384" stroke="currentColor" stroke-opacity=".45" stroke-width=".9"/>
+<text x="870" y="408" text-anchor="middle" class="fig-num">2</text>
+<circle cx="540.0" cy="292.4" r="9" fill="#d4782a" fill-opacity="0.100"/>
+<circle cx="540.0" cy="292.4" r="3.4" fill="#d4782a" fill-opacity="1.00"/>
+<circle cx="540.0" cy="249.7" r="9" fill="#d4782a" fill-opacity="0.094"/>
+<circle cx="540.0" cy="249.7" r="3.4" fill="#d4782a" fill-opacity="0.94"/>
+<circle cx="540.0" cy="224.9" r="9" fill="#d4782a" fill-opacity="0.088"/>
+<circle cx="540.0" cy="224.9" r="3.4" fill="#d4782a" fill-opacity="0.88"/>
+<circle cx="540.0" cy="191.4" r="9" fill="#d4782a" fill-opacity="0.082"/>
+<circle cx="540.0" cy="191.4" r="3.4" fill="#d4782a" fill-opacity="0.82"/>
+<circle cx="540.0" cy="175.8" r="9" fill="#d4782a" fill-opacity="0.076"/>
+<circle cx="540.0" cy="175.8" r="3.4" fill="#d4782a" fill-opacity="0.76"/>
+<circle cx="540.0" cy="147.0" r="9" fill="#d4782a" fill-opacity="0.069"/>
+<circle cx="540.0" cy="147.0" r="3.4" fill="#d4782a" fill-opacity="0.69"/>
+<circle cx="540.0" cy="126.3" r="9" fill="#d4782a" fill-opacity="0.063"/>
+<circle cx="540.0" cy="126.3" r="3.4" fill="#d4782a" fill-opacity="0.63"/>
+<circle cx="540.0" cy="111.4" r="9" fill="#d4782a" fill-opacity="0.057"/>
+<circle cx="540.0" cy="111.4" r="3.4" fill="#d4782a" fill-opacity="0.57"/>
+<circle cx="540.0" cy="82.4" r="9" fill="#d4782a" fill-opacity="0.051"/>
+<circle cx="540.0" cy="82.4" r="3.4" fill="#d4782a" fill-opacity="0.51"/>
+<circle cx="540.0" cy="71.4" r="9" fill="#d4782a" fill-opacity="0.045"/>
+<circle cx="540.0" cy="71.4" r="3.4" fill="#d4782a" fill-opacity="0.45"/>
+<line x1="660" y1="243.6" x2="720" y2="243.6" stroke="currentColor" stroke-opacity=".35" stroke-width=".8"/>
+<text x="730" y="239.6" class="fig-txt">critical strip</text>
+<text x="730" y="259.6" class="fig-sub">0 &lt; Re <tspan font-style="italic">s</tspan> &lt; 1</text>
+<line x1="530.0" y1="336.6" x2="360" y2="336.6" stroke="currentColor" stroke-opacity=".35" stroke-width=".8"/>
+<text x="350" y="332.6" text-anchor="end" class="fig-txt">critical line</text>
+<text x="350" y="352.6" text-anchor="end" class="fig-sub">Re <tspan font-style="italic">s</tspan> = ½</text>
+<line x1="554.0" y1="175.8" x2="720" y2="135.8" stroke="currentColor" stroke-opacity=".35" stroke-width=".8"/>
+<text x="730" y="131.8" class="fig-txt">nontrivial zeros</text>
+<text x="730" y="151.8" class="fig-sub">ζ(<tspan font-style="italic">s</tspan>) = 0</text>
 </svg>
-    <figcaption>The Riemann Hypothesis: every nontrivial zero of ζ(<i>s</i>) lies on the critical line Re(<i>s</i>) = ½. Shown: the first five zeros.</figcaption>
+    <figcaption>Every nontrivial zero of ζ(<i>s</i>) lies on the critical line Re <i>s</i> = ½.</figcaption>
   </figure>
 
   <div class="hero">
