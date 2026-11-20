@@ -356,8 +356,10 @@ function hero(){
       else if (st === 'running') {
         if (!gg || !gg.total) { c = 'Preparing module list…'; e = `Started ${utcT(x.start)} UTC · ≈ 50–90 min`; }
         else if (gg.done < gg.total) {
-          c = `${fmt(gg.done)} of ${fmt(gg.total)} modules` + (gg.failed ? ` · ${fmt(gg.failed)} failed` : '');
-          e = gg.eta_seconds != null ? `About ${dur(gg.eta_seconds)} left · done ≈ ${clock(d.updated + gg.eta_seconds)}` : `Started ${utcT(x.start)} UTC · estimating…`;
+          const ps = gg.rate_per_min ? gg.rate_per_min / 60 : null;
+          c = `${fmt(gg.done)} of ${fmt(gg.total)} modules` + (gg.failed ? ` · ${fmt(gg.failed)} failed` : ' · 0 failed')
+            + (ps ? ` · ${ps.toFixed(1)} modules/s` : '');
+          e = gg.eta_seconds != null ? `About ${dur(gg.eta_seconds)} left · done ≈ ${clock(L.updated + gg.eta_seconds)}` : `Started ${utcT(x.start)} UTC · measuring speed…`;
         } else { c = `${fmt(gg.done)} modules replayed · leanchecker cross-check ${gg.crosscheck_done} / ${gg.crosscheck_total}`; e = 'Finishing…'; }
       } else { c = 'Starts after Phases 2 and 3'; e = '≈ 50–90 min once started'; }
     } else {
