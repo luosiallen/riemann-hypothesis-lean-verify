@@ -6,7 +6,7 @@ PHASES = [
     ("download", "Download 14 archive parts (parallel)"),
     ("static", "Static audit: sorry / axiom / native_decide / kernel bypass"),
     ("toolchain", "Install Lean v4.33.1 + Mathlib prebuilt cache"),
-    ("build", "Kernel-check all 175,187 modules (lake build, 128 cores)"),
+    ("build", "Kernel-check all 175,187 modules (lake build, 288 cores)"),
     ("axioms", "#print axioms on the final theorems"),
     ("statement", "Confirm statements match Mathlib definitions"),
     ("replay", "Independent environment replay (lean4checker)"),

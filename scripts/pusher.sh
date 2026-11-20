@@ -5,7 +5,7 @@ ROOT=/home/allenluo/rhv
 S=$ROOT/status
 while true; do
   python3 -I $ROOT/tools/collect.py $S >> $ROOT/logs/pusher.log 2>&1
-  if [ -d $S/.git ]; then
+  if [ -e $S/.git ]; then
     cd $S && git add -A >/dev/null 2>&1 && git commit -q --amend -m "status snapshot $(date -u +%FT%TZ)" >/dev/null 2>&1 \
       && git push -q -f origin status >> $ROOT/logs/pusher.log 2>&1
   fi

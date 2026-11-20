@@ -14,12 +14,21 @@ EVENTS = f"{ROOT}/events.json"
 HIST = f"{ROOT}/history.json"
 TOTAL_MODULES = int(open(f"{ROOT}/total_modules.txt").read().strip())
 
+LIB_TOTALS = {"Development": 141928, "Formalism": 18254, "GroundTheory": 8507, "ReciprocityTheory": 3845,
+              "CompanionTheory": 2027, "PositivityTheory": 449, "Lemmata": 167, "Other": 10}
+
 def count_oleans():
     d = f"{PROJ}/.lake/build/lib/lean"
+    libs = {k: 0 for k in LIB_TOTALS}
     if not os.path.isdir(d):
-        return 0
+        return 0, libs
     r = subprocess.run(["find", d, "-name", "*.olean", "-type", "f"], capture_output=True, text=True)
-    return r.stdout.count("\n")
+    n = 0
+    for line in r.stdout.splitlines():
+        n += 1
+        top = line[len(d) + 1:].split("/", 1)[0]
+        libs[top if top in libs else "Other"] += 1
+    return n, libs
 
 def cpu_sample():
     with open("/proc/stat") as f:
@@ -58,7 +67,7 @@ def parse_log():
 def main():
     os.makedirs(OUT, exist_ok=True)
     now = time.time()
-    built = count_oleans()
+    built, libs = count_oleans()
     events = json.load(open(EVENTS)) if os.path.exists(EVENTS) else {"phases": []}
     hist = json.load(open(HIST)) if os.path.exists(HIST) else []
     cpu = cpu_util(); mt, mu = mem()
@@ -96,6 +105,9 @@ def main():
         "sorry_warnings": sorry_warn,
         "recent_log": last,
         "history": hs,
+        "libraries": [{"name": k, "built": libs[k], "total": t} for k, t in LIB_TOTALS.items()],
+        "machine": "288 cores · 1 TB RAM",
+        "run": 2,
         **events,
     }
     tmp = f"{OUT}/status.json.tmp"
