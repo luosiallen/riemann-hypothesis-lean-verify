@@ -25,6 +25,7 @@ header{display:flex;flex-direction:column;gap:14px}
 .live{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:8px}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:b 2.4s ease-in-out infinite}
 .dot.stale{background:var(--muted);animation:none}
+.dot.final{background:var(--ok);animation:none}
 @keyframes b{50%{opacity:.25}}
 .sub{color:var(--muted);font-size:14px;margin:12px 0 0}
 .hero{margin:40px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:34px 44px}
@@ -314,7 +315,9 @@ function stamp(x){
 }
 const hm = t => new Date(t*1000).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
 
+// Final data is frozen into the site (data/), so the page needs neither this server nor the GitHub API.
 async function load(){
+  try { const r = await fetch('data/status.json', {cache:'no-store'}); if (r.ok) return r.json(); } catch(e){}
   try { const r = await fetch(API, {headers:{Accept:'application/vnd.github.raw'}, cache:'no-store'}); if(r.ok) return r.json(); } catch(e){}
   const r = await fetch(RAW + '?t=' + Date.now(), {cache:'no-store'}); return r.json();
 }
@@ -415,9 +418,12 @@ function hero(){
 }
 function render(d){
   const age = Date.now()/1000 - d.updated, stale = age > 900;
-  $('dot').className = 'dot' + (stale ? ' stale' : '');
-  $('upd').textContent = (stale ? 'Stale · ' : 'Live · ') + 'updated ' + dur(age) + ' ago';
   const phases = d.phases || [];
+  const final = phases.length && phases.every(p => p.state === 'done');
+  $('dot').className = 'dot' + (final ? ' final' : stale ? ' stale' : '');
+  $('upd').textContent = final ? `Final · completed ${utcDT(Math.max(...phases.map(p => p.end || 0)))} UTC`
+    : (stale ? 'Stale · ' : 'Live · ') + 'updated ' + dur(age) + ' ago';
+  if (final) $('lg-upd').textContent = 'Final snapshot';
   const core = phases;
   const allDone = core.length && core.every(p => p.state === 'done');
   const failed = core.find(p => p.state === 'failed');
@@ -445,7 +451,7 @@ function render(d){
 
 }
 const LOGS = `https://raw.githubusercontent.com/${owner}/${repo}/status/logs.json`;
-$('rawlog').href = `https://raw.githubusercontent.com/${owner}/${repo}/status/build_tail.txt`;
+$('rawlog').href = 'data/build_tail.txt';
 let lastIdx = 0;
 const short = m => m.split('.').slice(-2).join('.');
 function renderPhaseLogs(){
@@ -466,7 +472,8 @@ function renderLogs(l){
   L = l; hero(); if (S) render(S); renderPhaseLogs();
   $('pub-state').textContent = L.logs_published ? '✓ raw logs published' : '';
   if (L.logs_published) $('pub-note').textContent = 'Everything below is in the public repository, including the full raw logs with SHA-256 checksums.';
-  $('lg-upd').textContent = 'Server log · ' + dur(Date.now()/1000 - L.updated) + ' ago';
+  const fin = S && (S.phases || []).length && S.phases.every(p => p.state === 'done');
+  $('lg-upd').textContent = fin ? 'Final snapshot' : 'Server log · ' + dur(Date.now()/1000 - L.updated) + ' ago';
   const s = L.scheduler, c = L.counts || {};
   $('sched').innerHTML = (s ? [['running',s.running],['ready',s.ready],['done',s.done],['failed',s.failed]] : [])
     .concat([['clean',c.ok],['with warnings',c.warn]])
@@ -483,7 +490,10 @@ function renderLogs(l){
   $('errs').innerHTML = L.errors && L.errors.length
     ? `<h3 style="margin-top:32px;color:var(--bad)">Errors (${fmt(L.error_files)})</h3><pre class="err">${L.errors.map(e => esc(e.name + '\n' + e.body)).join('\n\n')}</pre>` : '';
 }
-async function tickLogs(){ try { const r = await fetch(LOGS + '?t=' + Date.now(), {cache:'no-store'}); if (r.ok) renderLogs(await r.json()); } catch(e){} }
+async function tickLogs(){
+  try { const r = await fetch('data/logs.json', {cache:'no-store'}); if (r.ok) return renderLogs(await r.json()); } catch(e){}
+  try { const r = await fetch(LOGS + '?t=' + Date.now(), {cache:'no-store'}); if (r.ok) renderLogs(await r.json()); } catch(e){}
+}
 tickLogs(); setInterval(tickLogs, 60000);
 async function tick(){ try { render(await load()); } catch(e) { $('upd').textContent = 'Waiting for first status'; } }
 tick(); setInterval(tick, 90000);
