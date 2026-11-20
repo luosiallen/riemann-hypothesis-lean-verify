@@ -120,7 +120,7 @@ a:hover{text-decoration-color:currentColor}
 <line x1="541.0" y1="320" x2="370" y2="298" stroke="currentColor" stroke-width=".8"/>
 <text x="364" y="302" text-anchor="end" class="fig-txt">critical line  Re(<tspan font-style="italic">s</tspan>) = ½</text>
 </svg>
-    <figcaption>The Riemann Hypothesis: every nontrivial zero of ζ(<i>s</i>) lies on the critical line Re(<i>s</i>) = ½. The first five zeros are shown.</figcaption>
+    <figcaption>The Riemann Hypothesis: every nontrivial zero of ζ(<i>s</i>) lies on the critical line Re(<i>s</i>) = ½. Shown: the first five zeros.</figcaption>
   </figure>
 
   <div class="hero">
@@ -180,8 +180,8 @@ const clock = t => new Date(t*1000).toLocaleString('en-US',{month:'short',day:'n
 const hm = t => new Date(t*1000).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
 
 async function load(){
-  try { const r = await fetch(RAW + '?t=' + Date.now(), {cache:'no-store'}); if(r.ok) return r.json(); } catch(e){}
-  const r = await fetch(API, {headers:{Accept:'application/vnd.github.raw'}, cache:'no-store'}); return r.json();
+  try { const r = await fetch(API, {headers:{Accept:'application/vnd.github.raw'}, cache:'no-store'}); if(r.ok) return r.json(); } catch(e){}
+  const r = await fetch(RAW + '?t=' + Date.now(), {cache:'no-store'}); return r.json();
 }
 function chart(h, total){
   const W=720,H=200,L=0,R=0,T=8,B=22, svg=$('chart');
@@ -230,7 +230,7 @@ function render(d){
   $('errs').innerHTML = d.errors && d.errors.length ? `<pre class="err">${d.errors.map(esc).join('\n')}</pre>` : '';
 }
 async function tick(){ try { render(await load()); } catch(e) { $('upd').textContent = 'Waiting for first status'; } }
-tick(); setInterval(tick, 60000);
+tick(); setInterval(tick, 90000);
 </script>
 </body>
 </html>
