@@ -75,6 +75,10 @@ ol li:last-child{border-bottom:1px solid var(--faint)}
 .ph-note{display:block;font-size:12px;color:var(--muted);margin-top:2px;word-break:break-word}
 .ph-t{font-size:12px;color:var(--muted);white-space:nowrap}
 .pending .ph-n{color:var(--muted)}
+.ph-p{display:flex;align-items:center;gap:10px;margin-top:8px;font:11.5px var(--mono);color:var(--muted)}
+.ph-p .track{flex:1;margin:0;height:2px;max-width:320px}
+.ph-items{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;font-size:11.5px;color:var(--muted)}
+.ph-items .ok{color:var(--ok)}
 .fin .ph-n{font-weight:500}
 pre{font:12px/1.7 var(--mono);color:var(--muted);margin:0;white-space:pre;overflow-x:auto}
 pre.err{color:var(--bad);margin-top:16px}
@@ -265,6 +269,70 @@ function chart(h, total){
     `<text x="0" y="${H-4}">${hm(t0)}</text><text x="${W}" y="${H-4}" text-anchor="end">${hm(t1)}</text>`+
     `<text x="${Math.min(x(last[0])-8,W-8)}" y="${Math.max(y(last[1])-10,14)}" text-anchor="end" fill="var(--ink)">${fmt(last[1])}</text>`;
 }
+let S = null, L = null;
+// Share of the whole verification each stage stands for (≈ its expected wall time).
+const STAGES = [['build', 'Compile', .60], ['axioms', 'Axiom audit', .03], ['statement', 'Statement audit', .03], ['replay', 'Kernel replay', .34]];
+function frac(id){
+  const ph = (S && S.phases || []).find(p => p.id === id), g = L && L.stages && L.stages[id];
+  if (!ph) return 0;
+  if (ph.state === 'done') return 1;
+  if (id === 'build') return S.total_modules ? Math.min(1, (S.built_modules || 0) / S.total_modules) : 0;
+  if (ph.state !== 'running' || !g) return 0;
+  if (id === 'replay') {
+    const m = g.total ? g.done / g.total : 0, x = g.crosscheck_total ? g.crosscheck_done / g.crosscheck_total : 0;
+    return .9 * m + .1 * x;
+  }
+  return g.total ? g.done / g.total : 0;
+}
+function phProg(id){
+  const g = L && L.stages && L.stages[id];
+  if (!g || id === 'build') return '';
+  const q = 100 * frac(id);
+  let txt = g.total ? `${fmt(g.done)} / ${fmt(g.total)} ${g.unit}` : 'preparing…';
+  if (id === 'replay') {
+    if (g.failed) txt += ` · ${fmt(g.failed)} failed`;
+    if (g.done && g.total && g.done >= g.total) txt += ` · leanchecker cross-check ${g.crosscheck_done} / ${g.crosscheck_total}`;
+    if (g.eta_seconds != null && g.done < g.total) txt += ` · ~${dur(g.eta_seconds)} left`;
+  }
+  const items = g.items ? `<span class="ph-items">${g.items.map(i => `<span class="${i.ok ? 'ok' : ''}">${i.ok ? '✓' : '○'} ${esc(i.n)}</span>`).join('')}</span>` : '';
+  return `<span class="ph-p"><span class="track"><i style="width:${q}%"></i></span><span>${txt}</span></span>${items}`;
+}
+function hero(){
+  if (!S) return;
+  const d = S, phases = d.phases || [];
+  const allDone = phases.length && phases.every(p => p.state === 'done');
+  const failed = phases.find(p => p.state === 'failed');
+  const p = allDone ? 100 : 100 * STAGES.reduce((a, [id, , w]) => a + w * frac(id), 0);
+  $('pct').innerHTML = (p >= 10 ? p.toFixed(1) : p.toFixed(2)) + '<small>%</small>';
+  $('bar').style.width = Math.min(100, p) + '%';
+  const st = (id) => (phases.find(x => x.id === id) || {}).state;
+  const cur = STAGES.map((x, i) => [...x, i + 1]).filter(([id]) => st(id) === 'running');
+  const g = id => L && L.stages && L.stages[id];
+  const bp = phases.find(x => x.id === 'build');
+  $('k-el').textContent = bp && bp.start ? dur((allDone ? Math.max(...phases.map(x => x.end || 0)) : d.updated) - bp.start) : '—';
+  let label, eta, k = [d.built_modules, d.remaining_modules, d.rate_per_min];
+  if (allDone) { label = 'All four stages passed'; eta = 'Complete'; }
+  else if (failed) { label = 'Stopped at: ' + failed.name; eta = 'See phases below'; }
+  else if (!cur.length) { label = 'Stage 1 of 4 · Compile'; eta = 'Starting…'; }
+  else if (cur[0][0] === 'build') {
+    label = `Stage 1 of 4 · Compile · ${fmt(d.built_modules)} of ${fmt(d.total_modules)} modules`;
+    eta = d.eta_seconds != null ? `Compile: about ${dur(d.eta_seconds)} left · then audits + replay (≈ 1 h)` : 'Estimating…';
+  } else if (cur[0][0] === 'replay') {
+    const r = g('replay') || {};
+    label = `Stage 4 of 4 · Kernel replay` + (r.total ? ` · ${fmt(r.done)} of ${fmt(r.total)} modules` : ' · preparing');
+    eta = r.eta_seconds != null && r.done < r.total ? `About ${dur(r.eta_seconds)} left · done ≈ ${clock(d.updated + r.eta_seconds)}`
+        : r.total && r.done >= r.total ? 'Cross-checking with leanchecker…' : 'Estimating… (≈ 50–90 min)';
+    k = [r.done, r.total != null ? r.total - r.done : null, r.rate_per_min];
+  } else {
+    label = 'Stages ' + cur.map(c => c[3]).join(' & ') + ' of 4 · ' + cur.map(c => c[1]).join(' + ');
+    const n = cur.reduce((a, c) => a + ((g(c[0]) || {}).done || 0), 0), t = cur.reduce((a, c) => a + ((g(c[0]) || {}).total || 0), 0);
+    if (t) label += ` · ${n} of ${t} checks`;
+    eta = 'A few minutes · then kernel replay (≈ 50–90 min)';
+    k = [n, t - n, null];
+  }
+  $('counts').textContent = label; $('eta').textContent = eta;
+  $('k-built').textContent = fmt(k[0]); $('k-rem').textContent = fmt(k[1]); $('k-rate').textContent = fmt(k[2]);
+}
 function render(d){
   const age = Date.now()/1000 - d.updated, stale = age > 900;
   $('dot').className = 'dot' + (stale ? ' stale' : '');
@@ -272,17 +340,7 @@ function render(d){
   const phases = d.phases || [];
   const allDone = phases.length && phases.every(p => p.state === 'done');
   const failed = phases.find(p => p.state === 'failed');
-  const p = d.percent;
-  $('pct').innerHTML = (p >= 10 ? p.toFixed(1) : p.toFixed(2)) + '<small>%</small>';
-  $('bar').style.width = Math.min(100, p) + '%';
-  $('counts').textContent = `${fmt(d.built_modules)} of ${fmt(d.total_modules)} modules`;
-  $('eta').textContent = failed ? 'Stopped — see phases' : allDone ? 'Complete'
-    : d.eta_seconds != null ? `About ${dur(d.eta_seconds)} left · done ≈ ${clock(d.updated + d.eta_seconds)}` : 'Estimating…';
-  $('k-built').textContent = fmt(d.built_modules);
-  $('k-rem').textContent = fmt(d.remaining_modules);
-  $('k-rate').textContent = fmt(d.rate_per_min);
-  const bp = phases.find(x => x.id === 'build');
-  $('k-el').textContent = bp && bp.start ? dur((bp.end || d.updated) - bp.start) : '—';
+  S = d; hero();
   if (d.machine) $('sub').textContent = `Kernel re-check of ${fmt(d.total_modules)} modules · Lean v4.33.1 · Mathlib 0df444a3 · ${d.machine}`;
   chart(d.history, d.total_modules);
   $('libs').innerHTML = (d.libraries || []).filter(l => l.total > 10).map(l => {
@@ -291,7 +349,7 @@ function render(d){
   }).join('');
   $('phases').innerHTML = phases.map(x => {
     const t = x.end ? dur(x.end - x.start) : x.start ? dur(d.updated - x.start) + '…' : '';
-    return `<li class="${x.state}"><span class="s ${x.state}">${x.state === 'done' ? '✓' : x.state === 'failed' ? '✕' : ''}</span><span><span class="ph-n">${esc(x.name)}</span>${x.note ? `<span class="ph-note">${esc(x.note)}</span>` : ''}</span><span class="ph-t">${t}</span></li>`;
+    return `<li class="${x.state}"><span class="s ${x.state}">${x.state === 'done' ? '✓' : x.state === 'failed' ? '✕' : ''}</span><span><span class="ph-n">${esc(x.name)}</span>${x.note ? `<span class="ph-note">${esc(x.note)}</span>` : ''}${x.state === 'running' ? phProg(x.id) : ''}</span><span class="ph-t">${t}</span></li>`;
   }).join('') + (() => {
     const st = allDone ? 'done' : failed ? 'failed' : 'pending';
     const ends = phases.map(p => p.end || 0), starts = phases.map(p => p.start).filter(Boolean);
@@ -306,7 +364,8 @@ const LOGS = `https://raw.githubusercontent.com/${owner}/${repo}/status/logs.jso
 $('rawlog').href = `https://raw.githubusercontent.com/${owner}/${repo}/status/build_tail.txt`;
 let lastIdx = 0;
 const short = m => m.split('.').slice(-2).join('.');
-function renderLogs(L){
+function renderLogs(l){
+  L = l; hero(); if (S) render(S);
   $('lg-upd').textContent = 'Server log · ' + dur(Date.now()/1000 - L.updated) + ' ago';
   const s = L.scheduler, c = L.counts || {};
   $('sched').innerHTML = (s ? [['running',s.running],['ready',s.ready],['done',s.done],['failed',s.failed]] : [])

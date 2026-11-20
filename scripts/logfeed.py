@@ -15,6 +15,11 @@ BUILD = f"{ROOT}/logs/build.log"
 WARN = f"{ROOT}/logs/warnings.log"
 ERRDIR = f"{ROOT}/logs/errors"
 SCHED = f"{ROOT}/kv/sched_stats.txt"
+EVENTS = f"{ROOT}/events.json"
+RES = f"{ROOT}/repo/results"
+ROUT = f"{ROOT}/kv/replay/out"
+WALKS = ["riemannHypothesis", "riemannZeta_eq_zero_re", "LFunction_ne_zero_of_half_lt_re",
+         "LFunction_eq_zero_re", "LFunction_eq_zero_re_of_isPrimitive"]
 OUT = sys.argv[1] if len(sys.argv) > 1 else f"{ROOT}/status"
 
 LINE = re.compile(r"^(✔|⚠|✖)\s*\[(\d+)/(\d+)\]\s+\S+\s+(\S+)(?:\s+\(([\d.]+)(ms|s)\))?")
@@ -117,6 +122,80 @@ def sched_info():
     return d
 
 
+def _fresh(path, since):
+    """Read a file only if it was written after `since` (so stale files from earlier runs are ignored)."""
+    try:
+        if since and os.path.getmtime(path) < since - 5:
+            return None
+        return open(path, errors="replace").read()
+    except OSError:
+        return None
+
+
+def stage_info():
+    """Progress of each verification stage, for the overall bar and the phase rows."""
+    try:
+        ph = {p["id"]: p for p in json.load(open(EVENTS))["phases"]}
+    except (OSError, ValueError, KeyError):
+        return None
+    out = {}
+    sc = sched_info() or {}
+    if sc.get("total"):
+        out["build"] = {"done": sc.get("done", 0), "total": sc["total"], "unit": "modules"}
+    # axioms: Audit.lean (#print axioms) + 5 independent axiom walks
+    a = ph.get("axioms", {})
+    if a.get("state") == "running":
+        since = a.get("start")
+        items = [("#print axioms (Audit.lean)", "AUDIT_EXIT" in (_fresh(f"{RES}/audit.log", since) or ""))]
+        items += [(f"axiom walk: {t}", "WALK_EXIT" in (_fresh(f"{ROUT}/walk_{t}.txt", since) or "")) for t in WALKS]
+        out["axioms"] = {"done": sum(ok for _, ok in items), "total": len(items), "unit": "checks",
+                         "items": [{"n": n, "ok": ok} for n, ok in items]}
+    st = ph.get("statement", {})
+    if st.get("state") == "running":
+        since = st.get("start")
+        items = [("StatementAudit.lean", "STATEMENT_AUDIT_EXIT" in (_fresh(f"{RES}/statement_audit.txt", since) or "")),
+                 ("Main import closure", _fresh(f"{ROUT}/main_closure.rc", since) is not None),
+                 ("package revisions", _fresh(f"{RES}/package_revs.txt", since) is not None)]
+        out["statement"] = {"done": sum(ok for _, ok in items), "total": len(items), "unit": "checks",
+                            "items": [{"n": n, "ok": ok} for n, ok in items]}
+    r = ph.get("replay", {})
+    if r.get("state") == "running":
+        since = r.get("start")
+        mods = _fresh(f"{ROUT}/replay_modules.txt", since)
+        cdir = f"{ROUT}/chunks"
+        total = len(mods.split()) if mods else None
+        ok = bad = cdone = ctotal = 0
+        try:
+            names = os.listdir(cdir) if os.path.getmtime(cdir) >= (since or 0) - 5 else []
+        except OSError:
+            names = []
+        for n in names:
+            if not n.endswith(".out"):
+                ctotal += 1
+                continue
+            try:
+                txt = open(os.path.join(cdir, n), errors="replace").read()
+            except OSError:
+                continue
+            ok += len(re.findall(r"^OK ", txt, re.M))
+            bad += len(re.findall(r"^FAIL ", txt, re.M))
+            cdone += "\nRC " in "\n" + txt
+        xc = _fresh(f"{RES}/leanchecker_crosscheck.txt", since) or ""
+        xdone = len(re.findall(r" rc=\d+ ", xc))
+        try:
+            xtotal = len(open(f"{ROOT}/kv/replay/crosscheck.txt").read().split())
+        except OSError:
+            xtotal = 59
+        el = time.time() - since if since else None
+        rate = ok / el * 60 if el and el > 60 and ok else None
+        out["replay"] = {"done": ok, "total": total, "failed": bad, "unit": "modules",
+                         "chunks_done": cdone, "chunks_total": ctotal,
+                         "crosscheck_done": xdone, "crosscheck_total": xtotal,
+                         "rate_per_min": round(rate, 1) if rate else None,
+                         "eta_seconds": int((total - ok) / rate * 60) if rate and total else None}
+    return out
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     rows, slow, counts = build_info()
@@ -133,6 +212,7 @@ def main():
         "error_files": nerr,
         "errors": errs,
         "scheduler": sched_info(),
+        "stages": stage_info(),
     }
     tmp = f"{OUT}/logs.json.tmp"
     json.dump(feed, open(tmp, "w"), ensure_ascii=False)
