@@ -1,0 +1,15 @@
+WALK LFunction_eq_zero_re: reachable=1478224 axioms=[propext, Classical.choice, Quot.sound] missing=0 byRoot=[Development:842319, Formalism:278269, Mathlib:203032, GroundTheory:76752, ReciprocityTheory:47612, CompanionTheory:15717, Init:9662, PositivityTheory:4276, Lemmata:314, Batteries:253, Std:9, Aesop:3, Supplements:2, Statements:2, Main:1, Lean:1]
+AXIOMWALK_BAD 0
+WALK_EXIT 0
+WALK LFunction_eq_zero_re_of_isPrimitive: reachable=1478214 axioms=[propext, Classical.choice, Quot.sound] missing=0 byRoot=[Development:842309, Formalism:278271, Mathlib:203030, GroundTheory:76752, ReciprocityTheory:47612, CompanionTheory:15717, Init:9662, PositivityTheory:4276, Lemmata:314, Batteries:253, Std:9, Aesop:3, Supplements:2, Statements:2, Main:1, Lean:1]
+AXIOMWALK_BAD 0
+WALK_EXIT 0
+WALK LFunction_ne_zero_of_half_lt_re: reachable=1478211 axioms=[propext, Classical.choice, Quot.sound] missing=0 byRoot=[Development:842309, Formalism:278269, Mathlib:203030, GroundTheory:76752, ReciprocityTheory:47612, CompanionTheory:15717, Init:9662, PositivityTheory:4276, Lemmata:314, Batteries:253, Std:9, Aesop:3, Statements:2, Main:1, Supplements:1, Lean:1]
+AXIOMWALK_BAD 0
+WALK_EXIT 0
+WALK riemannHypothesis: reachable=1478219 axioms=[propext, Classical.choice, Quot.sound] missing=0 byRoot=[Development:842309, Formalism:278273, Mathlib:203035, GroundTheory:76752, ReciprocityTheory:47612, CompanionTheory:15717, Init:9662, PositivityTheory:4276, Lemmata:314, Batteries:253, Std:9, Aesop:3, Supplements:2, Lean:1, Main:1]
+AXIOMWALK_BAD 0
+WALK_EXIT 0
+WALK riemannZeta_eq_zero_re: reachable=1478221 axioms=[propext, Classical.choice, Quot.sound] missing=0 byRoot=[Development:842309, Formalism:278273, Mathlib:203035, GroundTheory:76752, ReciprocityTheory:47612, CompanionTheory:15717, Init:9662, PositivityTheory:4276, Lemmata:314, Batteries:253, Std:9, Aesop:3, Supplements:2, Statements:2, Main:1, Lean:1]
+AXIOMWALK_BAD 0
+WALK_EXIT 0

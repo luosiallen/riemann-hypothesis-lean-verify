@@ -1,0 +1,13 @@
+# Run 2 build summary (generated 2026-11-20T21:44:11Z)
+## lake build phase (stopped, see VERIFICATION_LOG section 4): logs/build.run2b.log
+START 2026-11-20T17:49:55Z LEAN_NUM_THREADS=288
+## sched.py phase
+START 2026-11-20T19:14:52Z driver=sched.py JOBS=288 MEM_FLOOR_GB=96.0
+GRAPH modules=175187 local_edges=753569 parse_s=2.4
+SUMMARY built=175187/175187 failed=0 blocked=0 not_run=0
+Elapsed (wall clock) time (h:mm:ss or m:ss): 2:00:33
+EXIT 0
+failed_lines=0
+modules_with_warnings=104066
+warning_lines_mentioning_sorry=0
+build_log_lines_mentioning_sorry=0

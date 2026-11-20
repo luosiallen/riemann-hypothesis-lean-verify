@@ -55,7 +55,7 @@ step 6 (independent replay) matter.
 - `lake exe cache get`: 8,690 prebuilt Mathlib files in 73 s. Mathlib HEAD = `0df444a360ea…` as pinned.
 - `lake-manifest.json` semantically identical to the one shipped in the archive.
 
-## 4. Kernel check (full build) — running since 19:14
+## 4. Kernel check (full build) — done (19:14–21:44)
 ### Run 2 — 288 cores (2 × Xeon 6985P-C), 1 TB RAM, fresh build
 
 - **17:49:55** fresh `lake build` (all 11 default targets) with `LEAN_NUM_THREADS=288`, as requested.
@@ -84,21 +84,38 @@ step 6 (independent replay) matter.
   The ~105,700 modules built in run 2c were deleted (logs kept in `logs/run2c/`).
 - **19:14:52** rebuild from scratch (`ALREADY_BUILT 0`) with `-R <srcDir>` added to every `lean` call. Spot check after
   2 min: 3,356 new `.olean`s, no `_src` instance names, Lake-style `_<library>` suffixes present.
-- Status: Rebuild from scratch 19:14 UTC with --root fix (-R srcDir); sched.py, 288 parallel lean processes. Run 2c discarded: module names were src.<Path> (1 failed, 425 blocked)
+- **21:16** `#print axioms` (34 s) and `StatementAudit.lean` (37 s) finished. The independent axiom walk ran at
+  only ~130 constants/s: `AxiomWalk.lean` evaluated `env.header.moduleNames` once per visited constant, and
+  `env.header` costs ~12 ms per access on this ~186k-module environment. That expression only feeds the
+  per-package `byRoot` statistics; axiom collection, the `missing` check and the verdict do not use it.
+- **21:44** chain stopped and restarted with the fix (`modNames := env.header.moduleNames` read once before the
+  loop; the original binary is kept as `axiomwalk.v1`). `#print axioms` and the statement audit were re-run as
+  part of the restart. A test copy of the fixed walk finished `riemannHypothesis` (1,478,219 reachable constants)
+  in about 5.5 min instead of an estimated 3 h.
+- **Result:** `EXIT 0`, built=175187/175187 failed=0 blocked=0 not_run=0, wall time 2:00:33 for the `sched.py` phase.
+- Failed modules (`✖` lines): 0. Modules with any warning: 104066. Warning lines mentioning `sorry`: 0.
+- Details: [`results/build_summary.txt`](results/build_summary.txt); throughput samples every 5 min: [`results/throughput_run2.txt`](results/throughput_run2.txt).
 
 | UTC | modules done | modules/min (last 5 min) | `lean` procs | load |
 |---|---|---|---|---|
 | 18:23:56 | 32,035 | 1581 | 288 | 351.36 |
-| 18:28:56 | 39,532 | 1499 | 288 | 344.86 |
 | 18:33:56 | 46,704 | 1434 | 288 | 334.60 |
-| 18:38:56 | 53,922 | 1443 | 288 | 343.68 |
 | 18:43:56 | 61,246 | 1464 | 287 | 332.95 |
-| 18:48:57 | 68,499 | 1445 | 288 | 337.04 |
 | 18:53:57 | 75,871 | 1474 | 288 | 332.12 |
-| 18:58:57 | 83,107 | 1447 | 288 | 338.21 |
 | 19:03:57 | 90,294 | 1437 | 288 | 335.05 |
-| 19:08:57 | 97,445 | 1430 | 288 | 335.48 |
 | 19:13:58 | 104,722 | 1455 | 288 | 341.64 |
+| 19:23:58 | 13,550 | 1486 | 288 | 400.23 |
+| 19:33:58 | 30,078 | 1730 | 288 | 356.42 |
+| 19:43:59 | 46,510 | 1545 | 288 | 341.64 |
+| 19:53:59 | 62,387 | 1603 | 288 | 345.58 |
+| 20:04:00 | 78,447 | 1597 | 288 | 334.28 |
+| 20:14:00 | 94,173 | 1552 | 288 | 347.82 |
+| 20:24:01 | 110,080 | 1570 | 288 | 338.22 |
+| 20:34:01 | 125,646 | 1540 | 288 | 336.21 |
+| 20:44:02 | 140,813 | 1546 | 288 | 330.08 |
+| 20:54:02 | 155,768 | 1465 | 288 | 329.57 |
+| 21:04:03 | 169,539 | 1338 | 288 | 334.20 |
+| 21:14:03 | 175,184 | 7 | 1 | 1.95 |
 
 ### Run 1 — earlier 128-core / 503 GB machine (from 17:11)
 
@@ -107,9 +124,77 @@ step 6 (independent replay) matter.
 - Progress is published to the dashboard every 120 s.
 - Run 1's record ends here: sections 5–7 were still pending when that machine's session ended. Run 2 redoes everything from a fresh build.
 
-## 5. Axiom audit — pending
+## 5. Axiom audit — done (21:47–21:50)
 
-## 6. Statement audit — pending
+Two independent methods. (1) `#print axioms` (`audit/Audit.lean`). In Lean 4.33 this reads axiom
+lists that each `.olean` pre-computes at export time and silently skips unknown constants, so
+(2) `AxiomWalk.lean` (compiled, in `results/tools/`) walks the bodies of every constant reachable
+from each theorem in the fully imported environment and fails on any missing constant.
+
+| Theorem | `#print axioms` | Independent walk (reachable constants) |
+|---|---|---|
+| `riemannHypothesis` | propext, Classical.choice, Quot.sound | propext, Classical.choice, Quot.sound (1,478,219; missing 0) |
+| `riemannZeta_eq_zero_re` | propext, Classical.choice, Quot.sound | propext, Classical.choice, Quot.sound (1,478,221; missing 0) |
+| `LFunction_ne_zero_of_half_lt_re` | propext, Classical.choice, Quot.sound | propext, Classical.choice, Quot.sound (1,478,211; missing 0) |
+| `LFunction_eq_zero_re` | propext, Classical.choice, Quot.sound | propext, Classical.choice, Quot.sound (1,478,224; missing 0) |
+| `LFunction_eq_zero_re_of_isPrimitive` | propext, Classical.choice, Quot.sound | propext, Classical.choice, Quot.sound (1,478,214; missing 0) |
+
+Verdict: All 5 theorems: only Classical.choice,Quot.sound,propext (#print axioms and independent body walk agree). Raw output: [`results/audit.log`](results/audit.log), [`results/axiom_walk.txt`](results/axiom_walk.txt).
+
+## 6. Statement audit — done (21:47–21:50)
+
+`StatementAudit.lean` (in `results/tools/`, run against the built `Main`) checks, by machine:
+
+- `ORIGIN_OK RiemannHypothesis ← Mathlib.NumberTheory.LSeries.RiemannZeta`
+- `ORIGIN_OK riemannZeta ← Mathlib.NumberTheory.LSeries.RiemannZeta`
+- `ORIGIN_OK DirichletCharacter ← Mathlib.NumberTheory.DirichletCharacter.Basic`
+- `ORIGIN_OK DirichletCharacter.LFunction ← Mathlib.NumberTheory.LSeries.DirichletContinuation`
+- `ORIGIN_OK DirichletCharacter.IsPrimitive ← Mathlib.NumberTheory.DirichletCharacter.Basic`
+- `ORIGIN_OK Complex.re ← Mathlib.Data.Complex.Basic`
+- `ORIGIN_OK NeZero ← Init.Data.NeZero`
+- `ORIGIN_OK RiemannZetaZerosOnLine ← Statements`
+- `ORIGIN_OK DirichletLNonvanishingRightOfHalf ← Statements`
+- `ORIGIN_OK DirichletLZerosOnLine ← Statements`
+- `ORIGIN_OK PrimitiveDirichletLZerosOnLine ← Statements`
+- `STATEMENTS_IMPORTS_OK [Init, Init, Mathlib]`
+- `STMT_DEPS_OK RiemannZetaZerosOnLine: 34 external constants (Mathlib/core), auxiliary in Statements: [RiemannZetaZerosOnLine._proof_1]`
+- `STMT_DEPS_OK DirichletLNonvanishingRightOfHalf: 38 external constants (Mathlib/core), auxiliary in Statements: [RiemannZetaZerosOnLine._proof_1]`
+- `STMT_DEPS_OK DirichletLZerosOnLine: 33 external constants (Mathlib/core), auxiliary in Statements: [RiemannZetaZerosOnLine._proof_1]`
+- `STMT_DEPS_OK PrimitiveDirichletLZerosOnLine: 34 external constants (Mathlib/core), auxiliary in Statements: [RiemannZetaZerosOnLine._proof_1]`
+- `THM_TYPE_OK riemannHypothesis : RiemannHypothesis (theorem in Main)`
+- `THM_TYPE_OK riemannZeta_eq_zero_re : RiemannZetaZerosOnLine (theorem in Main)`
+- `THM_TYPE_OK LFunction_ne_zero_of_half_lt_re : DirichletLNonvanishingRightOfHalf (theorem in Main)`
+- `THM_TYPE_OK LFunction_eq_zero_re : DirichletLZerosOnLine (theorem in Main)`
+- `THM_TYPE_OK LFunction_eq_zero_re_of_isPrimitive : PrimitiveDirichletLZerosOnLine (theorem in Main)`
+- `example : RiemannZetaZerosOnLine = RiemannHypothesis := rfl` type-checks.
+- Mathlib checkout `0df444a360ea`, 0 modified files (all packages: [`results/package_revs.txt`](results/package_revs.txt)).
+
+Definitions as printed by Lean (`#print`), for reading by a human:
+
+```
+def RiemannHypothesis : Prop :=
+∀ (s : ℂ), riemannZeta s = 0 → (¬∃ n, s = -2 * (↑n + 1)) → s ≠ 1 → s.re = 1 / 2
+def riemannZeta : ℂ → ℂ :=
+HurwitzZeta.hurwitzZetaEven 0
+def DirichletCharacter.LFunction : {N : ℕ} → [NeZero N] → DirichletCharacter ℂ N → ℂ → ℂ :=
+fun {N} [NeZero N] χ s => ZMod.LFunction (⇑χ) s
+def DirichletCharacter.IsPrimitive.{u_1} : {R : Type u_1} →
+  [inst : CommMonoidWithZero R] → {n : ℕ} → DirichletCharacter R n → Prop :=
+fun {R} [CommMonoidWithZero R] {n} χ => χ.conductor = n
+def RiemannZetaZerosOnLine : Prop :=
+∀ (s : ℂ), riemannZeta s = 0 → (¬∃ n, s = -2 * (↑n + 1)) → s ≠ 1 → s.re = 1 / 2
+def DirichletLNonvanishingRightOfHalf : Prop :=
+∀ (N : ℕ) [inst : NeZero N] (χ : DirichletCharacter ℂ N) (s : ℂ),
+  1 / 2 < s.re → χ ≠ 1 ∨ s ≠ 1 → DirichletCharacter.LFunction χ s ≠ 0
+def DirichletLZerosOnLine : Prop :=
+∀ (N : ℕ) [inst : NeZero N] (χ : DirichletCharacter ℂ N) (s : ℂ),
+  0 < s.re → s.re < 1 → DirichletCharacter.LFunction χ s = 0 → s.re = 1 / 2
+def PrimitiveDirichletLZerosOnLine : Prop :=
+∀ (N : ℕ) [inst : NeZero N] (χ : DirichletCharacter ℂ N),
+  χ.IsPrimitive → ∀ (s : ℂ), 0 < s.re → s.re < 1 → DirichletCharacter.LFunction χ s = 0 → s.re = 1 / 2
+```
+
+Verdict: Mathlib RiemannHypothesis/riemannZeta/LFunction/IsPrimitive (Mathlib 0df444a, clean); RiemannZetaZerosOnLine = RiemannHypothesis by rfl; Statements imports only Mathlib; theorem types exact. Raw output: [`results/statement_audit.txt`](results/statement_audit.txt).
 
 ## 7. Independent replay — pending
 
@@ -134,5 +219,7 @@ Smoke tests before the build finished (also re-run by the chain into
 reports **no axioms**; shipped `leanchecker` and `replayexact` both reject it (`(kernel) declaration type
 mismatch`). Both pass a correct control module and Mathlib modules (`Mathlib.Logic.Basic`,
 `Mathlib.NumberTheory.LSeries.RiemannZeta`, 21 modules of `Mathlib.NumberTheory.LSeries`).
+
+Status: next: kernel replay of Main's import closure, 186,200 modules, 256 parallel. Sample of 64 modules: mean 2.9 s each, so ~35-50 min; expected start ~21:52 UTC, done ~22:30-22:45 UTC
 
 Supplementary: `leanchecker --fresh Main` (re-adds every constant of the whole closure, Mathlib included, to an empty environment, single-threaded): queued after the parallel replay.

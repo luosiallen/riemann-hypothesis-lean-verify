@@ -1,0 +1,43 @@
+def RiemannHypothesis : Prop :=
+∀ (s : ℂ), riemannZeta s = 0 → (¬∃ n, s = -2 * (↑n + 1)) → s ≠ 1 → s.re = 1 / 2
+def riemannZeta : ℂ → ℂ :=
+HurwitzZeta.hurwitzZetaEven 0
+def DirichletCharacter.LFunction : {N : ℕ} → [NeZero N] → DirichletCharacter ℂ N → ℂ → ℂ :=
+fun {N} [NeZero N] χ s => ZMod.LFunction (⇑χ) s
+def DirichletCharacter.IsPrimitive.{u_1} : {R : Type u_1} →
+  [inst : CommMonoidWithZero R] → {n : ℕ} → DirichletCharacter R n → Prop :=
+fun {R} [CommMonoidWithZero R] {n} χ => χ.conductor = n
+def RiemannZetaZerosOnLine : Prop :=
+∀ (s : ℂ), riemannZeta s = 0 → (¬∃ n, s = -2 * (↑n + 1)) → s ≠ 1 → s.re = 1 / 2
+def DirichletLNonvanishingRightOfHalf : Prop :=
+∀ (N : ℕ) [inst : NeZero N] (χ : DirichletCharacter ℂ N) (s : ℂ),
+  1 / 2 < s.re → χ ≠ 1 ∨ s ≠ 1 → DirichletCharacter.LFunction χ s ≠ 0
+def DirichletLZerosOnLine : Prop :=
+∀ (N : ℕ) [inst : NeZero N] (χ : DirichletCharacter ℂ N) (s : ℂ),
+  0 < s.re → s.re < 1 → DirichletCharacter.LFunction χ s = 0 → s.re = 1 / 2
+def PrimitiveDirichletLZerosOnLine : Prop :=
+∀ (N : ℕ) [inst : NeZero N] (χ : DirichletCharacter ℂ N),
+  χ.IsPrimitive → ∀ (s : ℂ), 0 < s.re → s.re < 1 → DirichletCharacter.LFunction χ s = 0 → s.re = 1 / 2
+ORIGIN_OK RiemannHypothesis ← Mathlib.NumberTheory.LSeries.RiemannZeta
+ORIGIN_OK riemannZeta ← Mathlib.NumberTheory.LSeries.RiemannZeta
+ORIGIN_OK DirichletCharacter ← Mathlib.NumberTheory.DirichletCharacter.Basic
+ORIGIN_OK DirichletCharacter.LFunction ← Mathlib.NumberTheory.LSeries.DirichletContinuation
+ORIGIN_OK DirichletCharacter.IsPrimitive ← Mathlib.NumberTheory.DirichletCharacter.Basic
+ORIGIN_OK Complex.re ← Mathlib.Data.Complex.Basic
+ORIGIN_OK NeZero ← Init.Data.NeZero
+ORIGIN_OK RiemannZetaZerosOnLine ← Statements
+ORIGIN_OK DirichletLNonvanishingRightOfHalf ← Statements
+ORIGIN_OK DirichletLZerosOnLine ← Statements
+ORIGIN_OK PrimitiveDirichletLZerosOnLine ← Statements
+STATEMENTS_IMPORTS_OK [Init, Init, Mathlib]
+STMT_DEPS_OK RiemannZetaZerosOnLine: 34 external constants (Mathlib/core), auxiliary in Statements: [RiemannZetaZerosOnLine._proof_1]
+STMT_DEPS_OK DirichletLNonvanishingRightOfHalf: 38 external constants (Mathlib/core), auxiliary in Statements: [RiemannZetaZerosOnLine._proof_1]
+STMT_DEPS_OK DirichletLZerosOnLine: 33 external constants (Mathlib/core), auxiliary in Statements: [RiemannZetaZerosOnLine._proof_1]
+STMT_DEPS_OK PrimitiveDirichletLZerosOnLine: 34 external constants (Mathlib/core), auxiliary in Statements: [RiemannZetaZerosOnLine._proof_1]
+THM_TYPE_OK riemannHypothesis : RiemannHypothesis (theorem in Main)
+THM_TYPE_OK riemannZeta_eq_zero_re : RiemannZetaZerosOnLine (theorem in Main)
+THM_TYPE_OK LFunction_ne_zero_of_half_lt_re : DirichletLNonvanishingRightOfHalf (theorem in Main)
+THM_TYPE_OK LFunction_eq_zero_re : DirichletLZerosOnLine (theorem in Main)
+THM_TYPE_OK LFunction_eq_zero_re_of_isPrimitive : PrimitiveDirichletLZerosOnLine (theorem in Main)
+STATEMENT_AUDIT_OK
+STATEMENT_AUDIT_EXIT 0

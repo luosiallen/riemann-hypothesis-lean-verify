@@ -1,0 +1,27 @@
+'riemannHypothesis' depends on axioms: [propext, Classical.choice, Quot.sound]
+'riemannZeta_eq_zero_re' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LFunction_ne_zero_of_half_lt_re' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LFunction_eq_zero_re' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LFunction_eq_zero_re_of_isPrimitive' depends on axioms: [propext, Classical.choice, Quot.sound]
+riemannHypothesis : RiemannHypothesis
+def RiemannHypothesis : Prop :=
+∀ (s : ℂ), riemannZeta s = 0 → (¬∃ n, s = -2 * (↑n + 1)) → s ≠ 1 → s.re = 1 / 2
+def RiemannZetaZerosOnLine : Prop :=
+∀ (s : ℂ), riemannZeta s = 0 → (¬∃ n, s = -2 * (↑n + 1)) → s ≠ 1 → s.re = 1 / 2
+def DirichletLNonvanishingRightOfHalf : Prop :=
+∀ (N : ℕ) [inst : NeZero N] (χ : DirichletCharacter ℂ N) (s : ℂ),
+  1 / 2 < s.re → χ ≠ 1 ∨ s ≠ 1 → DirichletCharacter.LFunction χ s ≠ 0
+def DirichletLZerosOnLine : Prop :=
+∀ (N : ℕ) [inst : NeZero N] (χ : DirichletCharacter ℂ N) (s : ℂ),
+  0 < s.re → s.re < 1 → DirichletCharacter.LFunction χ s = 0 → s.re = 1 / 2
+def PrimitiveDirichletLZerosOnLine : Prop :=
+∀ (N : ℕ) [inst : NeZero N] (χ : DirichletCharacter ℂ N),
+  χ.IsPrimitive → ∀ (s : ℂ), 0 < s.re → s.re < 1 → DirichletCharacter.LFunction χ s = 0 → s.re = 1 / 2
+ORIGIN RiemannHypothesis ← Mathlib.NumberTheory.LSeries.RiemannZeta
+ORIGIN riemannZeta ← Mathlib.NumberTheory.LSeries.RiemannZeta
+ORIGIN DirichletCharacter.LFunction ← Mathlib.NumberTheory.LSeries.DirichletContinuation
+ORIGIN DirichletCharacter ← Mathlib.NumberTheory.DirichletCharacter.Basic
+ORIGIN DirichletCharacter.IsPrimitive ← Mathlib.NumberTheory.DirichletCharacter.Basic
+ORIGIN RiemannZetaZerosOnLine ← Statements
+ORIGIN riemannHypothesis ← Main
+AUDIT_EXIT 0
