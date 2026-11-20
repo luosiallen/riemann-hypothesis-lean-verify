@@ -359,7 +359,8 @@ function hero(){
   const ph = id => phases.find(x => x.id === id) || {};
   const g = id => (L && L.stages && L.stages[id]) || null;
   const pf = p => (p >= 10 || p === 0 ? p.toFixed(1) : p.toFixed(2));
-  const blocks = PH.map(([id, name], i) => {
+  // Phase 5 (supplementary --fresh) has no live progress: its block appears only once it has finished.
+  const blocks = PH.filter(([id]) => id !== 'fresh' || ['done', 'failed'].includes(ph(id).state)).map(([id, name], i) => {
     const x = ph(id), st = x.state || 'pending', gg = g(id), p = 100 * frac(id);
     let c = '', e = '';
     if (id === 'build') {
@@ -402,10 +403,17 @@ function hero(){
       <div class="track"><i style="width:${Math.min(100, p)}%"></i></div>
       <div class="line"><span>${esc(c)}</span><span>${esc(e)}</span></div></div>`;
   });
-  const all = phases.length && phases.every(p => p.state === 'done'), bad = phases.find(p => p.state === 'failed');
-  const fin = all ? Math.max(...phases.map(p => p.end || 0)) : null;
-  $('hero').innerHTML = blocks.join('') + (all
-    ? `<div class="fin-line ok"><span class="big">✓ Complete</span><span>All five phases passed · finished ${utcD(fin)} · ${utcT(fin)} UTC · <a href="#verify">logs &amp; how to verify</a></span></div>`
+  // Complete = Phases 1–4. The supplementary Phase 5 (leanchecker --fresh) is reported separately when it finishes.
+  const core = phases.filter(p => p.id !== 'fresh'), fr = ph('fresh');
+  const all = core.length && core.every(p => p.state === 'done'), bad = core.find(p => p.state === 'failed');
+  const fin = all ? Math.max(...core.map(p => p.end || 0)) : null;
+  const sup = fr.state === 'done' ? 'All five phases passed, including the supplementary leanchecker --fresh Main'
+    : fr.state === 'failed' ? 'Phases 1–4 passed · supplementary leanchecker --fresh Main reported a problem'
+    : 'All four phases passed';
+  // Phase 5 appears only once it has a result (no live progress while it runs).
+  const shown = blocks.filter((_, i) => PH[i][0] !== 'fresh' || ['done', 'failed'].includes(fr.state));
+  $('hero').innerHTML = shown.join('') + (all
+    ? `<div class="fin-line ok"><span class="big">✓ Complete</span><span>${sup} · finished ${utcD(fin)} · ${utcT(fin)} UTC · <a href="#verify">logs &amp; how to verify</a></span></div>`
     : bad ? `<div class="fin-line bad"><span class="big">✕ Stopped</span><span>${esc(bad.name)} · see the logs below</span></div>` : '');
   const b = ph('build'), bmin = b.start ? ((b.end || d.updated) - b.start) / 60 : null;
   $('k-built').textContent = fmt(d.built_modules);
@@ -418,8 +426,9 @@ function render(d){
   $('dot').className = 'dot' + (stale ? ' stale' : '');
   $('upd').textContent = (stale ? 'Stale · ' : 'Live · ') + 'updated ' + dur(age) + ' ago';
   const phases = d.phases || [];
-  const allDone = phases.length && phases.every(p => p.state === 'done');
-  const failed = phases.find(p => p.state === 'failed');
+  const core = phases.filter(p => p.id !== 'fresh'), fresh = phases.filter(p => p.id === 'fresh' && ['done', 'failed'].includes(p.state));
+  const allDone = core.length && core.every(p => p.state === 'done');
+  const failed = core.find(p => p.state === 'failed');
   S = d; hero();
   if (d.machine) $('sub').textContent = `Kernel re-check of ${fmt(d.total_modules)} modules · Lean v4.33.1 · Mathlib 0df444a3 · ${d.machine}`;
   chart(d.history, d.total_modules);
@@ -427,17 +436,18 @@ function render(d){
     const q = l.total ? 100 * l.built / l.total : 0;
     return `<div class="lib"><span class="n">${esc(l.name)}</span><div class="track"><i style="width:${q}%"></i></div><span class="c">${fmt(l.built)} / ${fmt(l.total)}</span></div>`;
   }).join('');
-  $('phases').innerHTML = phases.map(x => {
+  const row = x => {
     const t = x.end ? dur(x.end - x.start) : x.start ? dur(d.updated - x.start) + '…' : '';
     return `<li class="${x.state}"><span class="s ${x.state}">${x.state === 'done' ? '✓' : x.state === 'failed' ? '✕' : ''}</span><span><span class="ph-n">${phNum(x.id) ? `<span class="ph-k">Phase ${phNum(x.id)}</span>` : '<span class="ph-k"></span>'}${esc(x.name)}</span>${x.start ? `<span class="ph-ts">${stamp(x)}</span>` : ''}${x.note ? `<span class="ph-note">${esc(x.note)}</span>` : ''}${x.state === 'running' ? phProg(x.id) : ''}</span><span class="ph-t">${t}</span></li>`;
-  }).join('') + (() => {
+  };
+  $('phases').innerHTML = core.map(row).join('') + (() => {
     const st = allDone ? 'done' : failed ? 'failed' : 'pending';
-    const ends = phases.map(p => p.end || 0), starts = phases.map(p => p.start).filter(Boolean);
+    const ends = core.map(p => p.end || 0), starts = core.map(p => p.start).filter(Boolean);
     const t = allDone && starts.length ? dur(Math.max(...ends) - Math.min(...starts)) : '';
-    const note = allDone ? 'All phases passed' : failed ? 'Stopped at: ' + failed.name : '';
+    const note = allDone ? 'Phases 1–4 passed' : failed ? 'Stopped at: ' + failed.name : '';
     const fin = allDone ? `<span class="ph-ts">finished ${utcD(Math.max(...ends))} · ${utcT(Math.max(...ends))} UTC</span>` : '';
     return `<li class="${st} fin"><span class="s ${st}">${st === 'done' ? '✓' : st === 'failed' ? '✕' : ''}</span><span><span class="ph-n"><span class="ph-k"></span>Complete</span>${fin}${note ? `<span class="ph-note">${esc(note)}</span>` : ''}</span><span class="ph-t">${t}</span></li>`;
-  })();
+  })() + fresh.map(row).join('');
   if (L) renderPhaseLogs();
   $('mach').textContent = `${d.cpu_percent}% CPU · ${d.lean_processes} lean processes · ${d.mem_used_gb} / ${d.mem_total_gb} GB`;
 
@@ -457,7 +467,7 @@ function renderPhaseLogs(){
   };
   const keep = [...document.querySelectorAll('#plogs pre')].map(p => p.scrollTop);
   $('plogs').innerHTML = sec('axioms', 'Phase 2 · Axiom audit log') + sec('statement', 'Phase 3 · Statement audit log')
-    + sec('replay', 'Phase 4 · Kernel replay log') + sec('fresh', 'Phase 5 · leanchecker --fresh Main log') + (P.pipeline ? sec('pipeline', 'Pipeline log') : '');
+    + sec('replay', 'Phase 4 · Kernel replay log') + (['done', 'failed'].includes(st('fresh')) ? sec('fresh', 'Phase 5 · leanchecker --fresh Main log') : '') + (P.pipeline ? sec('pipeline', 'Pipeline log') : '');
   document.querySelectorAll('#plogs pre').forEach((p, i) => { if (keep[i]) p.scrollTop = keep[i]; });
 }
 function renderLogs(l){
