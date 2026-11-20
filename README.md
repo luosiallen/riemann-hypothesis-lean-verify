@@ -3,8 +3,8 @@
 Independent re-verification of a claimed Lean 4 formalization of the **Riemann Hypothesis** (and the
 generalized statement for Dirichlet L-functions), distributed as `https://alpo.ge/lean.tar.gz.part01 … part14`.
 
-**Live dashboard:** see the GitHub Pages site of this repository (`index.html`). It shows modules checked,
-modules remaining, throughput and the estimated time to completion, refreshed every two minutes.
+**Live dashboard:** https://luosiallen.github.io/riemann-hypothesis-lean-verify/ — modules checked, remaining, throughput and ETA,
+refreshed every two minutes from the `status` branch.
 
 This repository records *the verification process*, not the proof sources themselves (1.4 GB, 175,187 files).
 
