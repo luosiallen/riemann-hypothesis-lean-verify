@@ -159,7 +159,9 @@ def main():
             _, m = heapq.heappop(ready)
             olean, ilean = path_of(m, OUT, ".olean"), path_of(m, OUT, ".ilean")
             os.makedirs(os.path.dirname(olean), exist_ok=True)
-            args = [LEAN] + BASE_ARGS + (FIELDS_ARGS if m.startswith(FIELDS_PREFIX) else []) + \
+            # -R SRC: module name = path relative to srcDir (as Lake's setup "name"); without it Lean names
+            # the module src.<Path>, which changes private/auto-generated names (run-2c incident).
+            args = [LEAN, "-R", SRC] + BASE_ARGS + (FIELDS_ARGS if m.startswith(FIELDS_PREFIX) else []) + \
                    [path_of(m, SRC, ".lean"), "-o", olean, "-i", ilean]
             # threads per lean process: few when the frontier is wide, more when it is narrow
             width = len(ready) + len(running) + 1
