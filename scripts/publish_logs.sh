@@ -45,8 +45,8 @@ Paths are shortened (`~/rhv/...`); nothing else is edited. Checksums: `SHA256SUM
 | `discarded-run-2c/` | The earlier attempt that ran `lean` without `-R src` (wrong module names). Kept for the record; not used. |
 
 Verdicts and the audit outputs themselves are in [`../results/`](../results): `audit.log` (`#print axioms`),
-`axiom_walk.txt`, `statement_audit.txt`, `package_revs.txt`, `replay_summary.txt`, `leanchecker_crosscheck.txt`,
-`negative_control.txt`, and the checker sources in `results/tools/`.
+`axiom_walk.txt`, `statement_audit.txt`, `package_revs.txt`, `replay_summary.txt`, `fresh_replay.txt`
+(the supplementary `leanchecker --fresh Main`, added when it finishes), and the checker sources in `results/tools/`.
 
 ## Checking it yourself
 
