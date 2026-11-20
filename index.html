@@ -329,7 +329,7 @@ function chart(h, total){
 }
 let S = null, L = null;
 // Share of the whole verification each stage stands for (≈ its expected wall time).
-const STAGES = [['build', 'Compile', .60], ['axioms', 'Axiom audit', .03], ['statement', 'Statement audit', .03], ['replay', 'Kernel replay', .30], ['crosscheck', 'Cross-check', .04]];
+const STAGES = [['build', 'Compile', .60], ['axioms', 'Axiom audit', .03], ['statement', 'Statement audit', .03], ['replay', 'Kernel replay', .30], ['fresh', 'leanchecker --fresh Main', .04]];
 function frac(id){
   const ph = (S && S.phases || []).find(p => p.id === id), g = L && L.stages && L.stages[id];
   if (!ph) return 0;
@@ -345,13 +345,12 @@ function phProg(id){
   let txt = g.total ? `${fmt(g.done)} / ${fmt(g.total)} ${g.unit}` : 'preparing…';
   if (id === 'replay') {
     if (g.failed) txt += ` · ${fmt(g.failed)} failed`;
-    if (g.done && g.total && g.done >= g.total) txt += ` · leanchecker cross-check ${g.crosscheck_done} / ${g.crosscheck_total}`;
     if (g.eta_seconds != null && g.done < g.total) txt += ` · ~${dur(g.eta_seconds)} left`;
   }
   const items = g.items ? `<span class="ph-items">${g.items.map(i => `<span class="${i.ok ? 'ok' : ''}">${i.ok ? '✓' : '○'} ${esc(i.n)}${i.ok && i.t ? ` <span class="at">${utcT(i.t)}</span>` : ''}</span>`).join('')}</span>` : '';
   return `<span class="ph-p"><span class="track"><i style="width:${q}%"></i></span><span>${txt}</span></span>${items}`;
 }
-const PH = [['build', 'Compile'], ['axioms', 'Axiom audit'], ['statement', 'Statement audit'], ['replay', 'Kernel replay'], ['crosscheck', 'Official leanchecker + negative control']];
+const PH = [['build', 'Compile'], ['axioms', 'Axiom audit'], ['statement', 'Statement audit'], ['replay', 'Kernel replay'], ['fresh', 'Supplementary · leanchecker --fresh Main']];
 const phNum = id => { const i = PH.findIndex(x => x[0] === id); return i < 0 ? null : i + 1; };
 const span = x => x.start ? `${utcT(x.start)} → ${x.end ? utcT(x.end) : 'now'} UTC` : '';
 function hero(){
@@ -383,15 +382,19 @@ function hero(){
           e = gg.eta_seconds != null ? `About ${dur(gg.eta_seconds)} left · done ≈ ${clock(L.updated + gg.eta_seconds)}` : `Started ${utcT(x.start)} UTC · measuring speed…`;
         } else { c = `${fmt(gg.done)} modules replayed · 0 failed`; e = 'Finishing…'; }
       } else { c = 'Starts after Phases 2 and 3'; e = '≈ 50–90 min once started'; }
+    } else if (id === 'fresh') {
+      // No live progress by design: the phase stays pending while it runs and is posted when finished.
+      if (st === 'done') { c = 'Passed · official leanchecker re-added every constant of Main\u2019s closure to an empty environment'; e = `Done in ${dur(x.end - x.start)} · ${span(x)}`; }
+      else if (st === 'failed') { c = 'leanchecker --fresh reported a problem'; e = 'See phases below'; }
+      else { c = 'Single-threaded, runs after Phase 4'; e = 'Result posted when it finishes'; }
     } else {
-      const tot = gg ? gg.total : ({ axioms: 6, statement: 3, crosscheck: 61 })[id];
+      const tot = gg ? gg.total : ({ axioms: 6, statement: 3 })[id];
       if (st === 'done') { c = `${tot} of ${tot} checks passed`; e = `Done in ${dur(x.end - x.start)} · ${span(x)}`; }
       else if (st === 'failed') { c = 'Check failed'; e = 'See phases below'; }
       else if (st === 'running') {
         c = `${gg ? gg.done : 0} of ${tot} checks` + (gg && gg.failed ? ` · ${fmt(gg.failed)} failed` : '');
         e = `Running since ${utcT(x.start)} UTC`;
       }
-      else if (id === 'crosscheck') { c = '59 modules + 2 negative-control checks'; e = 'Starts after Phase 4'; }
       else { c = `${tot} checks`; e = 'Starts after Phase 1'; }
     }
     return `<div class="pb ${st}"><div class="lbl"><b>Phase ${i + 1}</b> · ${name}</div>
@@ -426,7 +429,7 @@ function render(d){
   }).join('');
   $('phases').innerHTML = phases.map(x => {
     const t = x.end ? dur(x.end - x.start) : x.start ? dur(d.updated - x.start) + '…' : '';
-    return `<li class="${x.state}"><span class="s ${x.state}">${x.state === 'done' ? '✓' : x.state === 'failed' ? '✕' : ''}</span><span><span class="ph-n">${phNum(x.id) ? `<span class="ph-k">Phase ${phNum(x.id)}</span>` : '<span class="ph-k">Setup</span>'}${esc(x.name)}</span>${x.start ? `<span class="ph-ts">${stamp(x)}</span>` : ''}${x.note ? `<span class="ph-note">${esc(x.note)}</span>` : ''}${x.state === 'running' ? phProg(x.id) : ''}</span><span class="ph-t">${t}</span></li>`;
+    return `<li class="${x.state}"><span class="s ${x.state}">${x.state === 'done' ? '✓' : x.state === 'failed' ? '✕' : ''}</span><span><span class="ph-n">${phNum(x.id) ? `<span class="ph-k">Phase ${phNum(x.id)}</span>` : '<span class="ph-k"></span>'}${esc(x.name)}</span>${x.start ? `<span class="ph-ts">${stamp(x)}</span>` : ''}${x.note ? `<span class="ph-note">${esc(x.note)}</span>` : ''}${x.state === 'running' ? phProg(x.id) : ''}</span><span class="ph-t">${t}</span></li>`;
   }).join('') + (() => {
     const st = allDone ? 'done' : failed ? 'failed' : 'pending';
     const ends = phases.map(p => p.end || 0), starts = phases.map(p => p.start).filter(Boolean);
@@ -449,12 +452,12 @@ function renderPhaseLogs(){
   const sec = (id, title) => {
     const fs = P[id] || [];
     const body = fs.length ? fs.map(f => `<div class="pf"><div class="pfn">${esc(f.f)}</div><pre>${esc(f.t)}</pre></div>`).join('')
-      : `<p class="wait">${st(id) === 'pending' ? 'Not started yet.' : 'Waiting for output…'}</p>`;
+      : `<p class="wait">${id === 'fresh' && st(id) === 'pending' ? 'Posted here when the check finishes.' : st(id) === 'pending' ? 'Not started yet.' : 'Waiting for output…'}</p>`;
     return `<div class="plog"><div class="lh"><h2>${title}</h2><span>${st(id) === 'done' ? '✓ passed' : st(id) === 'running' ? 'running' : st(id) === 'failed' ? 'failed' : ''}</span></div>${body}</div>`;
   };
   const keep = [...document.querySelectorAll('#plogs pre')].map(p => p.scrollTop);
   $('plogs').innerHTML = sec('axioms', 'Phase 2 · Axiom audit log') + sec('statement', 'Phase 3 · Statement audit log')
-    + sec('replay', 'Phase 4 · Kernel replay log') + sec('crosscheck', 'Phase 5 · Official leanchecker + negative control log') + (P.pipeline ? sec('pipeline', 'Pipeline log') : '');
+    + sec('replay', 'Phase 4 · Kernel replay log') + sec('fresh', 'Phase 5 · leanchecker --fresh Main log') + (P.pipeline ? sec('pipeline', 'Pipeline log') : '');
   document.querySelectorAll('#plogs pre').forEach((p, i) => { if (keep[i]) p.scrollTop = keep[i]; });
 }
 function renderLogs(l){
