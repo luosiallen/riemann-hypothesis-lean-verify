@@ -1,9 +1,8 @@
 #!/bin/bash
 # Takes over chain.sh after step 3's replay was launched (operator decision, 2026-11-20 ~22:15 UTC):
-# Phase 4 only (the parallel replayexact run of Main's closure), then the supplementary single-threaded
-# `leanchecker --fresh Main`. chain.sh's step 4 (59-module shipped-leanchecker cross-check and the
-# negative-control re-run) is dropped. The dashboard is not updated while --fresh runs; its phase is
-# written (start and end) only when it has finished.
+# Phase 4 only (the parallel replayexact run of Main's closure). chain.sh's step 4 (59-module
+# shipped-leanchecker cross-check and negative-control re-run) and step 5 (leanchecker --fresh Main)
+# are not run.
 # Usage: chain_tail.sh <pid of the replay xargs started by chain.sh>
 set -u
 TC=$HOME/.elan/toolchains/leanprover--lean4---v4.33.1
@@ -29,7 +28,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" >> $LOG 2>&1
   cd $R/src/lean
 }
 cd $R/src/lean
-log "chain_tail start pid $$: took over from chain.sh (operator decision: Phase 4 only, then leanchecker --fresh Main; 59-module cross-check and negative-control re-run dropped). Waiting for replay xargs pid $XPID"
+log "chain_tail start pid $$: took over from chain.sh (operator decision: Phase 4 only; cross-check, negative-control re-run and leanchecker --fresh Main dropped). Waiting for replay xargs pid $XPID"
 
 # --- 3 (cont). wait for the replay launched by chain.sh, then summarise ---
 while kill -0 $XPID 2>/dev/null; do sleep 20; done
@@ -73,20 +72,4 @@ cp $RP/ReplayExact.lean $RP/AxiomWalk.lean $RP/AxiomWalk.v1.lean $RP/ModClosure.
 gzip -9c $CLO > $RES/main_closure.txt.gz; sha256sum $CLO | awk '{print $1}' > $RES/main_closure.sha256
 genlog; commit "Run 2: kernel replay of Main's import closure"
 
-# --- 5. supplementary: single-threaded fresh-environment replay of Main (leanchecker --fresh) ---
-# No dashboard event while it runs; the phase gets its start and end only once it has finished.
-log "fresh replay start (dashboard not updated until it finishes)"
-s=$(date +%s)
-timeout 48h /usr/bin/time -v leanchecker --fresh Main > $OUT/fresh.txt 2>&1; rc=$?
-e=$(date +%s)
-{ echo "leanchecker --fresh Main: rc=$rc wall_seconds=$((e-s))"; grep -E 'Maximum resident|Elapsed' $OUT/fresh.txt; grep -v '^\s' $OUT/fresh.txt | head -30; } > $RES/fresh_replay.txt
-log "fresh replay rc=$rc wall=$((e-s)) s"
-python3 -I $R/tools/event.py fresh running "" $s
-if [ $rc = 0 ]; then
-  ev fresh done "leanchecker --fresh Main: rc=0, every constant of Main's closure (Mathlib included) re-added to an empty environment through the kernel; $(( (e-s)/60 )) min single-threaded" $e
-else
-  ev fresh failed "leanchecker --fresh Main: rc=$rc after $(( (e-s)/60 )) min, see results/fresh_replay.txt" $e
-fi
-cp $K/chain_tail.sh $RES/tools/
-genlog; commit "Run 2: supplementary fresh-environment replay (leanchecker --fresh Main)"
-log "chain finished"
+log "chain finished (Phase 4 only; leanchecker --fresh Main not run, operator decision 22:22 UTC)"
